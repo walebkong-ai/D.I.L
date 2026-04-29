@@ -20,20 +20,24 @@ struct ScreenBackground<Content: View>: View {
 
     var body: some View {
         ZStack {
-            Color.dilBackground.ignoresSafeArea()
+            Color.dilBackground.ignoresSafeArea(edges: .bottom)
             content
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
 struct Card<Content: View>: View {
     var background: Color = .white
     var padding: CGFloat = 18
+    var cornerRadius: CGFloat = 22
     let content: Content
 
-    init(background: Color = .white, padding: CGFloat = 18, @ViewBuilder content: () -> Content) {
+    init(background: Color = .white, padding: CGFloat = 18, cornerRadius: CGFloat = 22, @ViewBuilder content: () -> Content) {
         self.background = background
         self.padding = padding
+        self.cornerRadius = cornerRadius
         self.content = content()
     }
 
@@ -41,7 +45,7 @@ struct Card<Content: View>: View {
         content
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(background, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .background(background, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             .shadow(color: .black.opacity(0.05), radius: 18, y: 8)
     }
 }

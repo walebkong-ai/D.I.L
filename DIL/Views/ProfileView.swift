@@ -11,84 +11,19 @@ struct ProfileView: View {
                     let height = proxy.size.height
                     let metrics = ProfileMetrics(width: width, height: height)
 
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: metrics.gap) {
-                            Spacer(minLength: metrics.topBreathingRoom)
-
-                            ProfileIdentityView(
-                                eyebrow: appState.user.handle,
-                                name: appState.user.name,
-                                iconSize: metrics.profileIconSize,
-                                eyebrowSize: metrics.eyebrowFont,
-                                nameSize: metrics.nameFont
-                            )
-
-                            Card(padding: metrics.cardPadding) {
-                                HStack(spacing: 0) {
-                                    ProfileStat(title: "Weekly", value: "\(appState.user.weeklyPoints)", unit: "pts", metrics: metrics)
-                                    Divider().padding(.vertical, 4)
-                                    ProfileStat(title: "Streak", value: "\(appState.user.streakDays)", unit: "days", metrics: metrics)
-                                    Divider().padding(.vertical, 4)
-                                    ProfileStat(title: "Sharing", value: appState.user.privacyMode.rawValue, unit: "", metrics: metrics)
-                                }
-                                .frame(maxWidth: .infinity)
-                            }
-
-                            Card(padding: metrics.cardPadding) {
-                                VStack(alignment: .leading, spacing: metrics.rowGap) {
-                                    Text("Privacy & App Store Readiness")
-                                        .font(.system(size: metrics.cardTitleFont, weight: .bold))
-                                        .lineLimit(2)
-                                        .minimumScaleFactor(0.82)
-                                    ComplianceRow(icon: "lock.shield.fill", text: "Health, mood, grades, journal, and body metrics are private by default.", metrics: metrics)
-                                    ComplianceRow(icon: "person.crop.circle.badge.checkmark", text: "Friends leaderboard uses points only.", metrics: metrics)
-                                    ComplianceRow(icon: "heart.text.square.fill", text: "Apple Health access is requested only when a feature needs it.", metrics: metrics)
-                                    ComplianceRow(icon: "trash.fill", text: "Account deletion and data export need to be added before public launch.", metrics: metrics)
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                            .layoutPriority(1)
-
-                            Button {
-                                appState.requestHealthAccessPreview()
-                            } label: {
-                                HStack(spacing: metrics.rowGap) {
-                                    Image(systemName: "heart.fill")
-                                        .font(.system(size: metrics.bodyFont, weight: .bold))
-                                    Text("Prepare Apple Health Connection")
-                                        .font(.system(size: metrics.bodyFont, weight: .bold))
-                                        .lineLimit(2)
-                                        .minimumScaleFactor(0.82)
-                                    Spacer(minLength: 8)
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: metrics.bodyFont, weight: .semibold))
-                                }
-                                .padding(metrics.cardPadding)
-                                .frame(maxWidth: .infinity)
-                                .foregroundStyle(.white)
-                                .background(Color.dilInk, in: RoundedRectangle(cornerRadius: metrics.cornerRadius, style: .continuous))
-                            }
-                            .buttonStyle(.plain)
-
-                            if appState.healthAuthorizationState == .needsSystemPrompt {
-                                Card(background: .dilPurple.opacity(0.18), padding: metrics.cardPadding) {
-                                    Text("Next implementation step: show Apple’s system permission sheet from the exact feature requesting steps, workouts, sleep, or heart rate.")
-                                        .font(.system(size: metrics.bodyFont, weight: .medium))
-                                        .foregroundStyle(Color.dilInk)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }
-                            }
-
-                            Spacer(minLength: metrics.bottomBreathingRoom)
-                        }
-                        .frame(width: metrics.contentWidth)
-                        .frame(minHeight: max(0, height - metrics.verticalChrome), alignment: .top)
-                        .padding(.horizontal, metrics.horizontalPadding)
-                        .frame(maxWidth: .infinity)
-                    }
-                    .scrollIndicators(.hidden)
-                    .safeAreaPadding(.bottom, metrics.safeBottomPadding)
+                    ProfileFullHeightContent(
+                        userHandle: appState.user.handle,
+                        userName: appState.user.name,
+                        weeklyPoints: appState.user.weeklyPoints,
+                        streakDays: appState.user.streakDays,
+                        sharingMode: appState.user.privacyMode.rawValue,
+                        healthAuthorizationState: appState.healthAuthorizationState,
+                        metrics: metrics,
+                        onPrepareHealth: appState.requestHealthAccessPreview
+                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
     }
@@ -98,11 +33,12 @@ private struct ProfileMetrics {
     let width: CGFloat
     let height: CGFloat
 
-    var horizontalPadding: CGFloat { Fluid.clamp(width * 0.05, min: 16, max: 28) }
+    var horizontalPadding: CGFloat { width * 0.052 }
     var contentWidth: CGFloat { min(width - horizontalPadding * 2, 480) }
-    var gap: CGFloat { Fluid.clamp(height * 0.018, min: 14, max: 24) }
-    var rowGap: CGFloat { Fluid.clamp(width * 0.03, min: 10, max: 16) }
-    var cardPadding: CGFloat { Fluid.clamp(width * 0.048, min: 16, max: 26) }
+    var sectionSpacer: CGFloat { height * 0.018 }
+    var outerSpacer: CGFloat { height * 0.02 }
+    var rowGap: CGFloat { width * 0.03 }
+    var cardPadding: CGFloat { width * 0.048 }
     var cornerRadius: CGFloat { Fluid.clamp(width * 0.058, min: 20, max: 28) }
     var profileIconSize: CGFloat { Fluid.clamp(width * 0.16, min: 54, max: 76) }
     var eyebrowFont: CGFloat { Fluid.clamp(width * 0.052, min: 18, max: 24) }
@@ -112,10 +48,98 @@ private struct ProfileMetrics {
     var statUnitFont: CGFloat { Fluid.clamp(width * 0.04, min: 14, max: 18) }
     var cardTitleFont: CGFloat { Fluid.clamp(width * 0.068, min: 25, max: 34) }
     var bodyFont: CGFloat { Fluid.clamp(width * 0.044, min: 16, max: 21) }
-    var topBreathingRoom: CGFloat { Fluid.clamp(height * 0.045, min: 22, max: 70) }
-    var bottomBreathingRoom: CGFloat { Fluid.clamp(height * 0.025, min: 12, max: 44) }
-    var verticalChrome: CGFloat { Fluid.clamp(height * 0.035, min: 22, max: 44) }
-    var safeBottomPadding: CGFloat { Fluid.clamp(height * 0.012, min: 8, max: 18) }
+    var dividerVerticalPadding: CGFloat { height * 0.006 }
+}
+
+private struct ProfileFullHeightContent: View {
+    var userHandle: String
+    var userName: String
+    var weeklyPoints: Int
+    var streakDays: Int
+    var sharingMode: String
+    var healthAuthorizationState: HealthAuthorizationState
+    var metrics: ProfileMetrics
+    var onPrepareHealth: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Spacer(minLength: metrics.outerSpacer)
+
+            ProfileIdentityView(
+                eyebrow: userHandle,
+                name: userName,
+                iconSize: metrics.profileIconSize,
+                eyebrowSize: metrics.eyebrowFont,
+                nameSize: metrics.nameFont
+            )
+
+            Spacer(minLength: metrics.sectionSpacer)
+
+            Card(padding: metrics.cardPadding, cornerRadius: metrics.cornerRadius) {
+                HStack(spacing: 0) {
+                    ProfileStat(title: "Weekly", value: "\(weeklyPoints)", unit: "pts", metrics: metrics)
+                    Divider().padding(.vertical, metrics.dividerVerticalPadding)
+                    ProfileStat(title: "Streak", value: "\(streakDays)", unit: "days", metrics: metrics)
+                    Divider().padding(.vertical, metrics.dividerVerticalPadding)
+                    ProfileStat(title: "Sharing", value: sharingMode, unit: "", metrics: metrics)
+                }
+                .frame(maxWidth: .infinity)
+            }
+
+            Spacer(minLength: metrics.sectionSpacer)
+
+            Card(padding: metrics.cardPadding, cornerRadius: metrics.cornerRadius) {
+                VStack(alignment: .leading, spacing: metrics.rowGap) {
+                    Text("Privacy & App Store Readiness")
+                        .font(.system(size: metrics.cardTitleFont, weight: .bold))
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.82)
+                    ComplianceRow(icon: "lock.shield.fill", text: "Health, mood, grades, journal, and body metrics are private by default.", metrics: metrics)
+                    ComplianceRow(icon: "person.crop.circle.badge.checkmark", text: "Friends leaderboard uses points only.", metrics: metrics)
+                    ComplianceRow(icon: "heart.text.square.fill", text: "Apple Health access is requested only when a feature needs it.", metrics: metrics)
+                    ComplianceRow(icon: "trash.fill", text: "Account deletion and data export need to be added before public launch.", metrics: metrics)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .layoutPriority(1)
+
+            Spacer(minLength: metrics.sectionSpacer)
+
+            Button(action: onPrepareHealth) {
+                HStack(spacing: metrics.rowGap) {
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: metrics.bodyFont, weight: .bold))
+                    Text("Prepare Apple Health Connection")
+                        .font(.system(size: metrics.bodyFont, weight: .bold))
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.82)
+                    Spacer(minLength: metrics.rowGap)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: metrics.bodyFont, weight: .semibold))
+                }
+                .padding(metrics.cardPadding)
+                .frame(maxWidth: .infinity)
+                .foregroundStyle(.white)
+                .background(Color.dilInk, in: RoundedRectangle(cornerRadius: metrics.cornerRadius, style: .continuous))
+            }
+            .buttonStyle(.plain)
+
+            if healthAuthorizationState == .needsSystemPrompt {
+                Spacer(minLength: metrics.sectionSpacer)
+                Card(background: .dilPurple.opacity(0.18), padding: metrics.cardPadding, cornerRadius: metrics.cornerRadius) {
+                    Text("Next implementation step: show Apple’s system permission sheet from the exact feature requesting steps, workouts, sleep, or heart rate.")
+                        .font(.system(size: metrics.bodyFont, weight: .medium))
+                        .foregroundStyle(Color.dilInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            Spacer(minLength: metrics.outerSpacer)
+        }
+        .frame(width: metrics.contentWidth)
+        .padding(.horizontal, metrics.horizontalPadding)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
 }
 
 private struct ProfileIdentityView: View {

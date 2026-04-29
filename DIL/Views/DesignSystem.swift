@@ -85,7 +85,7 @@ struct AdaptiveScreen<Content: View>: View {
         GeometryReader { proxy in
             let width = proxy.size.width
             let horizontalPadding = width < 390 ? 16.0 : 20.0
-            let contentWidth = min(width - horizontalPadding * 2, 560)
+            let contentWidth = min(width - horizontalPadding * 2, 480)
 
             ScrollView {
                 VStack(spacing: width < 390 ? 14 : 18) {
@@ -98,6 +98,12 @@ struct AdaptiveScreen<Content: View>: View {
                 .frame(maxWidth: .infinity)
             }
         }
+    }
+}
+
+enum Fluid {
+    static func clamp(_ value: CGFloat, min minimum: CGFloat, max maximum: CGFloat) -> CGFloat {
+        Swift.min(Swift.max(value, minimum), maximum)
     }
 }
 

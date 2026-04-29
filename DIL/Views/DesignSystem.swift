@@ -28,16 +28,19 @@ struct ScreenBackground<Content: View>: View {
 
 struct Card<Content: View>: View {
     var background: Color = .white
+    var padding: CGFloat = 18
     let content: Content
 
-    init(background: Color = .white, @ViewBuilder content: () -> Content) {
+    init(background: Color = .white, padding: CGFloat = 18, @ViewBuilder content: () -> Content) {
         self.background = background
+        self.padding = padding
         self.content = content()
     }
 
     var body: some View {
         content
-            .padding(18)
+            .padding(padding)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .background(background, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
             .shadow(color: .black.opacity(0.05), radius: 18, y: 8)
     }
@@ -68,6 +71,51 @@ struct HeaderView: View {
 
             Spacer()
         }
+    }
+}
+
+struct AdaptiveScreen<Content: View>: View {
+    let content: (CGFloat) -> Content
+
+    init(@ViewBuilder content: @escaping (CGFloat) -> Content) {
+        self.content = content
+    }
+
+    var body: some View {
+        GeometryReader { proxy in
+            let width = proxy.size.width
+            let horizontalPadding = width < 390 ? 16.0 : 20.0
+            let contentWidth = min(width - horizontalPadding * 2, 560)
+
+            ScrollView {
+                VStack(spacing: width < 390 ? 14 : 18) {
+                    content(width)
+                }
+                .frame(width: contentWidth)
+                .padding(.horizontal, horizontalPadding)
+                .padding(.top, width < 390 ? 14 : 20)
+                .padding(.bottom, 24)
+                .frame(maxWidth: .infinity)
+            }
+        }
+    }
+}
+
+struct AdaptiveIconTile: View {
+    var color: Color
+    var icon: String
+    var size: CGFloat = 54
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: min(18, size * 0.32), style: .continuous)
+            .fill(color.opacity(0.22))
+            .frame(width: size, height: size)
+            .overlay {
+                Image(systemName: icon)
+                    .font(.system(size: max(16, size * 0.36), weight: .bold))
+                    .foregroundStyle(color)
+            }
+            .accessibilityHidden(true)
     }
 }
 

@@ -11,29 +11,31 @@ struct GoalsView: View {
     var body: some View {
         NavigationStack {
             ScreenBackground {
-                ScrollView {
-                    VStack(spacing: 18) {
-                        HeaderView(eyebrow: "Life areas", title: "Goals", systemImage: "target")
+                AdaptiveScreen { _ in
+                    HeaderView(eyebrow: "Life areas", title: "Goals", systemImage: "target")
 
-                        ForEach(goals, id: \.0) { goal in
-                            Card {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    HStack {
-                                        Text(goal.0).font(.title3.weight(.bold))
-                                        Spacer()
-                                        Text("\(Int(goal.2 * 100))%")
-                                            .font(.headline.weight(.bold))
-                                            .foregroundStyle(goal.3)
-                                    }
-                                    Text(goal.1)
-                                        .font(.subheadline)
-                                        .foregroundStyle(Color.dilMuted)
-                                    ProgressBar(progress: goal.2, color: goal.3)
+                    ForEach(goals, id: \.0) { goal in
+                        Card {
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack(alignment: .firstTextBaseline) {
+                                    Text(goal.0)
+                                        .font(.title3.weight(.bold))
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.78)
+                                    Spacer(minLength: 12)
+                                    Text("\(Int(goal.2 * 100))%")
+                                        .font(.headline.weight(.bold))
+                                        .foregroundStyle(goal.3)
+                                        .lineLimit(1)
                                 }
+                                Text(goal.1)
+                                    .font(.subheadline)
+                                    .foregroundStyle(Color.dilMuted)
+                                    .lineLimit(2)
+                                ProgressBar(progress: goal.2, color: goal.3)
                             }
                         }
                     }
-                    .padding(20)
                 }
             }
         }

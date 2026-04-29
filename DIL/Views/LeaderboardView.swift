@@ -6,35 +6,33 @@ struct LeaderboardView: View {
     var body: some View {
         NavigationStack {
             ScreenBackground {
-                ScrollView {
-                    VStack(spacing: 18) {
-                        HeaderView(eyebrow: appState.leaderboard.seasonTitle, title: "Leaderboard", systemImage: "trophy.fill")
+                AdaptiveScreen { screenWidth in
+                    HeaderView(eyebrow: appState.leaderboard.seasonTitle, title: "Leaderboard", systemImage: "trophy.fill")
 
-                        Card(background: .dilGold.opacity(0.25)) {
-                            VStack(alignment: .leading, spacing: 10) {
-                                Text("Points only")
-                                    .font(.title2.weight(.bold))
-                                Text("Friends see total points, streaks, and badges. Private health, grades, mood, journal, and body metrics are never shown by default.")
-                                    .font(.subheadline)
-                                    .foregroundStyle(Color.dilMuted)
-                            }
-                        }
-
-                        VStack(spacing: 12) {
-                            ForEach(appState.leaderboard.entries) { entry in
-                                LeaderboardRow(entry: entry, isCurrentUser: entry.name == appState.user.name)
-                            }
-                        }
-
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Challenges")
+                    Card(background: .dilGold.opacity(0.25)) {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Points only")
                                 .font(.title2.weight(.bold))
-                            ForEach(appState.leaderboard.challenges) { challenge in
-                                ChallengeCard(challenge: challenge)
-                            }
+                            Text("Friends see total points, streaks, and badges. Private health, grades, mood, journal, and body metrics are never shown by default.")
+                                .font(.subheadline)
+                                .foregroundStyle(Color.dilMuted)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
-                    .padding(20)
+
+                    VStack(spacing: 12) {
+                        ForEach(appState.leaderboard.entries) { entry in
+                            LeaderboardRow(entry: entry, isCurrentUser: entry.name == appState.user.name, isCompact: screenWidth < 390)
+                        }
+                    }
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Challenges")
+                            .font(.title2.weight(.bold))
+                        ForEach(appState.leaderboard.challenges) { challenge in
+                            ChallengeCard(challenge: challenge)
+                        }
+                    }
                 }
             }
         }
@@ -44,32 +42,38 @@ struct LeaderboardView: View {
 private struct LeaderboardRow: View {
     var entry: LeaderboardEntry
     var isCurrentUser: Bool
+    var isCompact: Bool
 
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: isCompact ? 10 : 14) {
             Text("\(entry.rank)")
-                .font(.title3.weight(.black))
+                .font((isCompact ? Font.headline : Font.title3).weight(.black))
                 .foregroundStyle(isCurrentUser ? Color.white : Color.dilInk)
-                .frame(width: 44, height: 44)
+                .frame(width: isCompact ? 38 : 44, height: isCompact ? 38 : 44)
                 .background(isCurrentUser ? Color.dilInk : Color.white, in: Circle())
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(entry.name)
                     .font(.headline.weight(.bold))
+                    .lineLimit(1)
                 Text("\(entry.streak)-day streak · \(entry.badge)")
                     .font(.subheadline)
                     .foregroundStyle(Color.dilMuted)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
             }
 
             Spacer()
 
             Text("\(entry.points)")
-                .font(.title3.weight(.black))
+                .font((isCompact ? Font.headline : Font.title3).weight(.black))
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
             Text("pts")
                 .font(.caption.weight(.bold))
                 .foregroundStyle(Color.dilMuted)
         }
-        .padding(14)
+        .padding(isCompact ? 12 : 14)
         .background(isCurrentUser ? Color.dilGold.opacity(0.30) : .white, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
 }

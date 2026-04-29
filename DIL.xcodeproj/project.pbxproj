@@ -252,19 +252,19 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = DIL;
-				INFOPLIST_KEY_NSCameraUsageDescription = "DIL uses the camera only when you choose to analyze exercise form. Video is not shared with friends.";
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "DIL reads selected Apple Health data, such as steps, workouts, heart rate, and sleep, to build your private daily insights.";
-				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "DIL writes only the wellness entries you choose to save, such as workouts or mindful minutes.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "DIL uses your location only when you start route tracking for walks, runs, or rides.";
-				INFOPLIST_KEY_NSUserNotificationsUsageDescription = "DIL sends reminders you create for habits, hydration, study sessions, workouts, and goals.";
+				INFOPLIST_KEY_CFBundleDisplayName = "Good Morning";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Good Morning uses the camera only when you choose to analyze exercise form. Video is not shared with friends.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Good Morning reads selected Apple Health data, such as steps, workouts, heart rate, and sleep, to build your private daily insights.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Good Morning writes only the wellness entries you choose to save, such as workouts or mindful minutes.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Good Morning uses your location only when you start route tracking for walks, runs, or rides.";
+				INFOPLIST_KEY_NSUserNotificationsUsageDescription = "Good Morning sends reminders you create for habits, hydration, study sessions, workouts, and goals.";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.kalebwong.dil;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kalebwong.goodmorning;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -284,19 +284,19 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = DIL;
-				INFOPLIST_KEY_NSCameraUsageDescription = "DIL uses the camera only when you choose to analyze exercise form. Video is not shared with friends.";
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "DIL reads selected Apple Health data, such as steps, workouts, heart rate, and sleep, to build your private daily insights.";
-				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "DIL writes only the wellness entries you choose to save, such as workouts or mindful minutes.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "DIL uses your location only when you start route tracking for walks, runs, or rides.";
-				INFOPLIST_KEY_NSUserNotificationsUsageDescription = "DIL sends reminders you create for habits, hydration, study sessions, workouts, and goals.";
+				INFOPLIST_KEY_CFBundleDisplayName = "Good Morning";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Good Morning uses the camera only when you choose to analyze exercise form. Video is not shared with friends.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Good Morning reads selected Apple Health data, such as steps, workouts, heart rate, and sleep, to build your private daily insights.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Good Morning writes only the wellness entries you choose to save, such as workouts or mindful minutes.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Good Morning uses your location only when you start route tracking for walks, runs, or rides.";
+				INFOPLIST_KEY_NSUserNotificationsUsageDescription = "Good Morning sends reminders you create for habits, hydration, study sessions, workouts, and goals.";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.kalebwong.dil;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kalebwong.goodmorning;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;

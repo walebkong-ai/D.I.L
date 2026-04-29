@@ -16,28 +16,38 @@ private struct AppShellView: View {
     @State private var selectedTab: AppTab = .today
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            TodayView()
-                .tabItem { Label("Today", systemImage: "house.fill") }
-                .tag(AppTab.today)
+        ZStack {
+            Color.white.ignoresSafeArea()
 
-            TrackView()
-                .tabItem { Label("Track", systemImage: "plus.circle.fill") }
-                .tag(AppTab.track)
+            TabView(selection: $selectedTab) {
+                TodayView()
+                    .tabItem { Label("Today", systemImage: "house.fill") }
+                    .tag(AppTab.today)
 
-            GoalsView()
-                .tabItem { Label("Goals", systemImage: "target") }
-                .tag(AppTab.goals)
+                TrackView()
+                    .tabItem { Label("Track", systemImage: "plus.circle.fill") }
+                    .tag(AppTab.track)
 
-            LeaderboardView()
-                .tabItem { Label("Board", systemImage: "trophy.fill") }
-                .tag(AppTab.leaderboard)
+                GoalsView()
+                    .tabItem { Label("Goals", systemImage: "target") }
+                    .tag(AppTab.goals)
 
-            ProfileView()
-                .tabItem { Label("Profile", systemImage: "person.crop.circle.fill") }
-                .tag(AppTab.profile)
+                LeaderboardView()
+                    .tabItem { Label("Board", systemImage: "trophy.fill") }
+                    .tag(AppTab.leaderboard)
+
+                ProfileView()
+                    .tabItem { Label("Profile", systemImage: "person.crop.circle.fill") }
+                    .tag(AppTab.profile)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.white.ignoresSafeArea())
+            .toolbarBackground(.white, for: .tabBar)
+            .toolbarBackground(.visible, for: .tabBar)
+            .tint(.dilInk)
         }
-        .tint(.dilInk)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.white.ignoresSafeArea())
     }
 }
 

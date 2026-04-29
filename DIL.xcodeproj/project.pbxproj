@@ -258,6 +258,7 @@
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Good Morning writes only the wellness entries you choose to save, such as workouts or mindful minutes.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Good Morning uses your location only when you start route tracking for walks, runs, or rides.";
 				INFOPLIST_KEY_NSUserNotificationsUsageDescription = "Good Morning sends reminders you create for habits, hydration, study sessions, workouts, and goals.";
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -290,6 +291,7 @@
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Good Morning writes only the wellness entries you choose to save, such as workouts or mindful minutes.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Good Morning uses your location only when you start route tracking for walks, runs, or rides.";
 				INFOPLIST_KEY_NSUserNotificationsUsageDescription = "Good Morning sends reminders you create for habits, hydration, study sessions, workouts, and goals.";
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

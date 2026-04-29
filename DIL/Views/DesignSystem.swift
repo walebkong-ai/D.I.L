@@ -20,11 +20,12 @@ struct ScreenBackground<Content: View>: View {
 
     var body: some View {
         ZStack {
-            Color.dilBackground.ignoresSafeArea(edges: .bottom)
+            Color.white.ignoresSafeArea()
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.white.ignoresSafeArea())
     }
 }
 
@@ -101,7 +102,10 @@ struct AdaptiveScreen<Content: View>: View {
                 .padding(.bottom, 24)
                 .frame(maxWidth: .infinity)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.white.ignoresSafeArea())
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 

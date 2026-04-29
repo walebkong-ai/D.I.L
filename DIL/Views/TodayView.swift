@@ -35,6 +35,8 @@ struct TodayView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.white.ignoresSafeArea())
     }
 
     private var formattedDate: String {

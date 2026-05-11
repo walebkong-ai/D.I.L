@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>My Dashboard</title>
+  <title>Good Morning</title>
   <style>
     :root {
       --text-primary: #FAFAFA;
@@ -791,6 +791,169 @@
       font-variant-numeric: tabular-nums;
     }
 
+    .points-board {
+      display: grid;
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .points-card {
+      display: grid;
+      gap: 18px;
+      background:
+        radial-gradient(circle at 88% 4%, rgba(242,192,99,0.16), transparent 38%),
+        var(--card-bg);
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+      backdrop-filter: blur(24px) saturate(1.2);
+      -webkit-backdrop-filter: blur(24px) saturate(1.2);
+    }
+
+    .points-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .points-kicker {
+      margin-bottom: 7px;
+      font-family: var(--mono);
+      font-size: 10.5px;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+    }
+
+    .points-total-row {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .points-total {
+      font-size: 46px;
+      line-height: 0.95;
+      font-weight: 800;
+      letter-spacing: -0.05em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .points-unit {
+      font-family: var(--mono);
+      font-size: 14px;
+      color: var(--text-tertiary);
+    }
+
+    .points-rank-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.05);
+      color: var(--warning);
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .points-stat-grid {
+      display: flex;
+      gap: 10px;
+    }
+
+    .points-stat {
+      flex: 1;
+      min-width: 0;
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(0,0,0,0.22);
+    }
+
+    .points-stat-label {
+      margin-bottom: 6px;
+      font-family: var(--mono);
+      font-size: 9.5px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+    }
+
+    .points-stat-value {
+      font-size: 18px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .leaderboard-list {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .leader-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 12px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.035);
+      border: 1px solid rgba(255,255,255,0.055);
+    }
+
+    .leader-row.is-you {
+      background: rgba(107,227,164,0.08);
+      border-color: rgba(107,227,164,0.22);
+      box-shadow: inset 3px 0 0 0 var(--success);
+    }
+
+    .leader-rank {
+      width: 28px;
+      height: 28px;
+      flex: 0 0 28px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background: rgba(255,255,255,0.06);
+      color: var(--text-secondary);
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .leader-name {
+      flex: 1;
+      min-width: 0;
+      font-size: 14px;
+      font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .leader-points {
+      color: var(--text-secondary);
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .leader-row.is-you .leader-points,
+    .leader-row.is-you .leader-rank {
+      color: var(--success);
+    }
+
     @media (max-width: 480px) {
       .dash-title { font-size: 22px; }
 
@@ -819,6 +982,9 @@
       .ring-percent { font-size: 32px; }
       .ring-status { font-size: 13px; }
       .gm-progress-num { font-size: 36px; }
+      .points-total { font-size: 38px; }
+      .points-card { padding: 18px; }
+      .points-stat-grid { gap: 8px; }
       .goal-input-wrap { flex-direction: column; }
       .goal-input-wrap input { flex-basis: auto; }
       .goal-add-btn,
@@ -828,7 +994,7 @@
 </head>
 <body>
   <main class="page">
-    <h1 class="dash-title">My Dashboard</h1>
+    <h1 class="dash-title">Good Morning</h1>
 
     <div class="ticker-row">
       <div class="goal-ticker" id="goalTicker" aria-live="polite" aria-atomic="true">
@@ -870,6 +1036,39 @@
         <div class="ring-remaining" id="ringRemaining">Calculating…</div>
         <div class="ring-range">8:00 AM – 12:00 AM</div>
       </div>
+    </section>
+
+    <section class="points-board" aria-label="Friends points leaderboard">
+      <h2 class="section-title">Leaderboard</h2>
+      <article class="points-card">
+        <header class="points-card-header">
+          <div>
+            <div class="points-kicker">Weekly points</div>
+            <div class="points-total-row">
+              <span class="points-total" id="weeklyPoints">0</span>
+              <span class="points-unit">pts</span>
+            </div>
+          </div>
+          <div class="points-rank-pill" id="weeklyRank">Rank —</div>
+        </header>
+
+        <div class="points-stat-grid" aria-label="Points summary">
+          <div class="points-stat">
+            <div class="points-stat-label">Today</div>
+            <div class="points-stat-value" id="todayPoints">0 pts</div>
+          </div>
+          <div class="points-stat">
+            <div class="points-stat-label">Streak</div>
+            <div class="points-stat-value" id="streakBonus">0 pts</div>
+          </div>
+          <div class="points-stat">
+            <div class="points-stat-label">Next</div>
+            <div class="points-stat-value" id="nextFriendGap">—</div>
+          </div>
+        </div>
+
+        <ol class="leaderboard-list" id="leaderboardList"></ol>
+      </article>
     </section>
 
     <section class="section">
@@ -930,6 +1129,16 @@
     const SLEEP_HOUR = 24;
     const MAX_COLLAPSED_GOALS = 5;
     const STREAK_KEY = 'goal_streak_v1';
+    const POINTS_PER_GOAL = 50;
+    const QUEUED_GOAL_BONUS = 10;
+    const PERFECT_DAY_BONUS = 75;
+    const STREAK_POINT_MULTIPLIER = 10;
+    const FRIEND_LEADERBOARD = [
+      { name: 'Maya', points: 1450 },
+      { name: 'Jordan', points: 1180 },
+      { name: 'Sandra', points: 940 },
+      { name: 'Leo', points: 720 }
+    ];
     const expandedKeys = new Set();
 
     const $ = (id) => document.getElementById(id);
@@ -951,6 +1160,15 @@
       list: $('tomorrowList'),
       empty: $('tomorrowEmptyState'),
       count: $('gmTomorrowCount')
+    };
+
+    const pointsEls = {
+      weekly: $('weeklyPoints'),
+      today: $('todayPoints'),
+      streakBonus: $('streakBonus'),
+      rank: $('weeklyRank'),
+      gap: $('nextFriendGap'),
+      list: $('leaderboardList')
     };
 
     function storeGet(key) {
@@ -1093,6 +1311,87 @@
       storeSet(STREAK_KEY, { count, lastProcessedDate });
     }
 
+    function getWeekStart(dateString) {
+      const date = fromDateString(dateString);
+      const offset = (date.getDay() + 6) % 7;
+      date.setDate(date.getDate() - offset);
+      return toDateString(date);
+    }
+
+    function getDatesBetween(startDateString, endDateString) {
+      const dates = [];
+      const date = fromDateString(startDateString);
+      const end = fromDateString(endDateString);
+      while (date <= end) {
+        dates.push(toDateString(date));
+        date.setDate(date.getDate() + 1);
+      }
+      return dates;
+    }
+
+    function scoreGoals(goals) {
+      const doneGoals = goals.filter((goal) => goal.done);
+      const doneScore = doneGoals.length * POINTS_PER_GOAL;
+      const queuedScore = doneGoals.filter((goal) => goal.queued).length * QUEUED_GOAL_BONUS;
+      const perfectScore = goals.length > 0 && doneGoals.length === goals.length ? PERFECT_DAY_BONUS : 0;
+      return doneScore + queuedScore + perfectScore;
+    }
+
+    function getTodayPoints() {
+      return scoreGoals(getGoals(goalsKey(getActiveDateString())));
+    }
+
+    function getWeeklyGoalPoints() {
+      const active = getActiveDateString();
+      return getDatesBetween(getWeekStart(active), active)
+        .reduce((sum, date) => sum + scoreGoals(getGoals(goalsKey(date))), 0);
+    }
+
+    function getStreakBonusPoints() {
+      const state = storeGet(STREAK_KEY) || { count: 0 };
+      return Math.min(Number(state.count || 0) * STREAK_POINT_MULTIPLIER, 100);
+    }
+
+    function getLeaderboardEntries() {
+      const yourPoints = getWeeklyGoalPoints() + getStreakBonusPoints();
+      return [
+        { name: 'You', points: yourPoints, isYou: true },
+        ...FRIEND_LEADERBOARD
+      ].sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
+    }
+
+    function renderPointsBoard() {
+      const entries = getLeaderboardEntries();
+      const yourEntry = entries.find((entry) => entry.isYou);
+      const yourRank = entries.findIndex((entry) => entry.isYou) + 1;
+      const nextEntry = entries[yourRank - 2];
+      const todayPoints = getTodayPoints();
+      const streakBonus = getStreakBonusPoints();
+
+      pointsEls.weekly.textContent = yourEntry.points;
+      pointsEls.today.textContent = `${todayPoints} pts`;
+      pointsEls.streakBonus.textContent = `${streakBonus} pts`;
+      pointsEls.rank.textContent = `Rank ${yourRank}`;
+      pointsEls.gap.textContent = nextEntry ? `${nextEntry.points - yourEntry.points} pts` : 'Lead';
+      pointsEls.list.innerHTML = '';
+
+      entries.forEach((entry, index) => {
+        const row = document.createElement('li');
+        row.className = `leader-row${entry.isYou ? ' is-you' : ''}`;
+        const rank = document.createElement('span');
+        rank.className = 'leader-rank';
+        rank.textContent = `#${index + 1}`;
+        const name = document.createElement('span');
+        name.className = 'leader-name';
+        name.textContent = entry.name;
+        const points = document.createElement('span');
+        points.className = 'leader-points';
+        points.textContent = `${entry.points} pts`;
+        row.append(rank, name, points);
+        pointsEls.list.appendChild(row);
+      });
+    }
+
     function renderTodayHeader() {
       const key = goalsKey(getActiveDateString());
       const goals = getGoals(key);
@@ -1160,6 +1459,7 @@
       renderTodayHeader();
       renderStreak();
       renderTomorrowCount();
+      renderPointsBoard();
     }
 
     function loadToday() {

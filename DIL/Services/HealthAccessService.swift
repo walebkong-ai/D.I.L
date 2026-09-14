@@ -12,12 +12,22 @@ final class HealthAccessService {
 
     func requestCoreWellnessAccess() async throws {
         let stepCount = HKQuantityType.quantityType(forIdentifier: .stepCount)
+        let walkingRunningDistance = HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)
         let activeEnergy = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)
         let heartRate = HKQuantityType.quantityType(forIdentifier: .heartRate)
+        let bodyMass = HKQuantityType.quantityType(forIdentifier: .bodyMass)
         let sleep = HKCategoryType.categoryType(forIdentifier: .sleepAnalysis)
         let workouts = HKObjectType.workoutType()
 
-        let readTypes = Set([stepCount, activeEnergy, heartRate, sleep, workouts].compactMap { $0 })
+        let readTypes = Set([
+            stepCount,
+            walkingRunningDistance,
+            activeEnergy,
+            heartRate,
+            bodyMass,
+            sleep,
+            workouts
+        ].compactMap { $0 })
 
         try await store.requestAuthorization(toShare: [], read: readTypes)
     }

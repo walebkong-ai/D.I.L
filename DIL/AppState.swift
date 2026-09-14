@@ -5,6 +5,7 @@ final class AppState: ObservableObject {
     @Published var dailyPlan = DailyPlan.sample
     @Published var leaderboard = Leaderboard.sample
     @Published var healthAuthorizationState: HealthAuthorizationState = .notRequested
+    @Published var garminConnectionState: GarminConnectionState = .notConnected
 
     var dailyPointTotal: Int {
         dailyPlan.categories.reduce(0) { $0 + $1.pointsEarned }
@@ -26,5 +27,15 @@ final class AppState: ObservableObject {
 
     func requestHealthAccessPreview() {
         healthAuthorizationState = .needsSystemPrompt
+    }
+
+    func prepareGarminConnectionPreview() {
+        garminConnectionState = .setupReady
+        healthAuthorizationState = .needsSystemPrompt
+    }
+
+    func markGarminConnectedPreview() {
+        garminConnectionState = .connected
+        healthAuthorizationState = .authorized
     }
 }

@@ -797,6 +797,145 @@
       margin-bottom: 24px;
     }
 
+    .wearable-sync {
+      display: grid;
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .wearable-card {
+      display: grid;
+      gap: 16px;
+      padding: 22px;
+      border-radius: 16px;
+      background:
+        radial-gradient(circle at 8% 2%, rgba(107,227,164,0.14), transparent 38%),
+        var(--card-bg);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+      backdrop-filter: blur(24px) saturate(1.2);
+      -webkit-backdrop-filter: blur(24px) saturate(1.2);
+    }
+
+    .wearable-head {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .wearable-icon {
+      width: 46px;
+      height: 46px;
+      flex: 0 0 46px;
+      border-radius: 15px;
+      display: grid;
+      place-items: center;
+      background: rgba(107,227,164,0.14);
+      color: var(--success);
+      font-size: 22px;
+    }
+
+    .wearable-copy {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .wearable-title {
+      margin-bottom: 3px;
+      color: var(--text-primary);
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .wearable-subtitle {
+      color: var(--text-tertiary);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .wearable-status {
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.04);
+      color: var(--text-tertiary);
+      font-family: var(--mono);
+      font-size: 10.5px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .wearable-status[data-state="setup"] {
+      background: rgba(242,192,99,0.10);
+      color: var(--warning);
+    }
+
+    .wearable-status[data-state="connected"] {
+      background: rgba(107,227,164,0.11);
+      color: var(--success);
+    }
+
+    .wearable-steps {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .wearable-steps li {
+      display: flex;
+      gap: 10px;
+      color: var(--text-secondary);
+      font-size: 12.5px;
+      line-height: 1.35;
+    }
+
+    .wearable-steps span {
+      color: var(--success);
+      font-family: var(--mono);
+      font-weight: 800;
+    }
+
+    .wearable-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .wearable-primary,
+    .wearable-secondary {
+      flex: 1 1 190px;
+      min-height: 42px;
+      border-radius: 999px;
+      padding: 11px 16px;
+      font-size: 13px;
+      font-weight: 800;
+      transition: transform 0.2s ease, filter 0.2s ease, background 0.2s ease;
+    }
+
+    .wearable-primary {
+      background: linear-gradient(180deg, #FFFFFF 0%, #E8E5DD 100%);
+      color: #0A0A0B;
+    }
+
+    .wearable-secondary {
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.04);
+      color: var(--text-primary);
+    }
+
+    .wearable-primary:hover,
+    .wearable-secondary:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+    }
+
+    .wearable-primary:disabled {
+      cursor: default;
+      opacity: 0.78;
+      transform: none;
+      filter: none;
+    }
+
     .points-card {
       display: grid;
       gap: 18px;
@@ -982,6 +1121,9 @@
       .ring-percent { font-size: 32px; }
       .ring-status { font-size: 13px; }
       .gm-progress-num { font-size: 36px; }
+      .wearable-card { padding: 18px; }
+      .wearable-head { align-items: flex-start; }
+      .wearable-status { margin-left: auto; }
       .points-total { font-size: 38px; }
       .points-card { padding: 18px; }
       .points-stat-grid { gap: 8px; }
@@ -1036,6 +1178,30 @@
         <div class="ring-remaining" id="ringRemaining">Calculating…</div>
         <div class="ring-range">8:00 AM – 12:00 AM</div>
       </div>
+    </section>
+
+    <section class="wearable-sync" aria-label="Wearable sync">
+      <h2 class="section-title">Wearable Sync</h2>
+      <article class="wearable-card">
+        <div class="wearable-head">
+          <div class="wearable-icon" aria-hidden="true">⌚</div>
+          <div class="wearable-copy">
+            <div class="wearable-title">Garmin Forerunner 165</div>
+            <div class="wearable-subtitle">Bring steps, heart rate, workouts, sleep, weight, and calories into Good Morning through Apple Health.</div>
+          </div>
+          <div class="wearable-status" id="garminStatus" data-state="idle">Not connected</div>
+        </div>
+        <ul class="wearable-steps">
+          <li><span>1</span>Pair your Forerunner in Garmin Connect.</li>
+          <li><span>2</span>In Garmin Connect, share data with Apple Health.</li>
+          <li><span>3</span>Approve the Health categories Good Morning requests.</li>
+          <li><span>4</span>Detailed GPS route maps may require future Garmin partner API approval.</li>
+        </ul>
+        <div class="wearable-actions">
+          <button class="wearable-primary" id="garminSetupBtn" type="button">Connect via Apple Health</button>
+          <button class="wearable-secondary" id="garminConnectedBtn" type="button">I finished setup</button>
+        </div>
+      </article>
     </section>
 
     <section class="points-board" aria-label="Friends points leaderboard">
@@ -1133,6 +1299,7 @@
     const QUEUED_GOAL_BONUS = 10;
     const PERFECT_DAY_BONUS = 75;
     const STREAK_POINT_MULTIPLIER = 10;
+    const GARMIN_KEY = 'garmin_connection_v1';
     const FRIEND_LEADERBOARD = [
       { name: 'Maya', points: 1450 },
       { name: 'Jordan', points: 1180 },
@@ -1169,6 +1336,12 @@
       rank: $('weeklyRank'),
       gap: $('nextFriendGap'),
       list: $('leaderboardList')
+    };
+
+    const garminEls = {
+      status: $('garminStatus'),
+      setup: $('garminSetupBtn'),
+      connected: $('garminConnectedBtn')
     };
 
     function storeGet(key) {
@@ -1360,6 +1533,27 @@
       ].sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
     }
 
+    function getGarminState() {
+      const state = storeGet(GARMIN_KEY);
+      return state && typeof state.status === 'string' ? state.status : 'idle';
+    }
+
+    function renderGarminConnection() {
+      const state = getGarminState();
+      const copy = {
+        idle: 'Not connected',
+        setup: 'Ready to sync',
+        connected: 'Connected'
+      };
+      garminEls.status.dataset.state = state;
+      garminEls.status.textContent = copy[state] || copy.idle;
+      garminEls.setup.textContent = state === 'connected'
+        ? 'Garmin sync ready'
+        : 'Connect via Apple Health';
+      garminEls.setup.disabled = state === 'connected';
+      garminEls.connected.style.display = state === 'connected' ? 'none' : 'block';
+    }
+
     function renderPointsBoard() {
       const entries = getLeaderboardEntries();
       const yourEntry = entries.find((entry) => entry.isYou);
@@ -1391,6 +1585,19 @@
         pointsEls.list.appendChild(row);
       });
     }
+
+    garminEls.setup.addEventListener('click', () => {
+      if (getGarminState() === 'connected') return;
+      storeSet(GARMIN_KEY, { status: 'setup', updatedAt: Date.now() });
+      renderGarminConnection();
+      alert('Garmin setup: pair your Forerunner 165 in Garmin Connect, enable Apple Health sharing in Garmin Connect, then approve Good Morning Health access.');
+    });
+
+    garminEls.connected.addEventListener('click', () => {
+      storeSet(GARMIN_KEY, { status: 'connected', updatedAt: Date.now() });
+      renderGarminConnection();
+    });
+
 
     function renderTodayHeader() {
       const key = goalsKey(getActiveDateString());
@@ -1896,6 +2103,7 @@
     loadToday();
     loadTomorrow();
     renderStreak();
+    renderGarminConnection();
     createTicker().start();
     updateDayBar();
     setInterval(updateDayBar, 60 * 1000);

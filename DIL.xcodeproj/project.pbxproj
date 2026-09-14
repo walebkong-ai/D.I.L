@@ -254,7 +254,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Good Morning";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Good Morning uses the camera only when you choose to analyze exercise form. Video is not shared with friends.";
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "Good Morning reads selected Apple Health data, such as steps, workouts, heart rate, and sleep, to build your private daily insights.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Good Morning reads selected Apple Health data, such as steps, distance, workouts, heart rate, sleep, and weight, including data synced from Garmin Connect when you allow it.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Good Morning writes only the wellness entries you choose to save, such as workouts or mindful minutes.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Good Morning uses your location only when you start route tracking for walks, runs, or rides.";
 				INFOPLIST_KEY_NSUserNotificationsUsageDescription = "Good Morning sends reminders you create for habits, hydration, study sessions, workouts, and goals.";
@@ -287,7 +287,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Good Morning";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Good Morning uses the camera only when you choose to analyze exercise form. Video is not shared with friends.";
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "Good Morning reads selected Apple Health data, such as steps, workouts, heart rate, and sleep, to build your private daily insights.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Good Morning reads selected Apple Health data, such as steps, distance, workouts, heart rate, sleep, and weight, including data synced from Garmin Connect when you allow it.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Good Morning writes only the wellness entries you choose to save, such as workouts or mindful minutes.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Good Morning uses your location only when you start route tracking for walks, runs, or rides.";
 				INFOPLIST_KEY_NSUserNotificationsUsageDescription = "Good Morning sends reminders you create for habits, hydration, study sessions, workouts, and goals.";

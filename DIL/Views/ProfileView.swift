@@ -11,17 +11,25 @@ struct ProfileView: View {
                     let height = proxy.size.height
                     let metrics = ProfileMetrics(width: width, height: height)
 
-                    ProfileFullHeightContent(
-                        userHandle: appState.user.handle,
-                        userName: appState.user.name,
-                        weeklyPoints: appState.user.weeklyPoints,
-                        streakDays: appState.user.streakDays,
-                        sharingMode: appState.user.privacyMode.rawValue,
-                        healthAuthorizationState: appState.healthAuthorizationState,
-                        metrics: metrics,
-                        onPrepareHealth: appState.requestHealthAccessPreview
-                    )
+                    ScrollView {
+                        ProfileFullHeightContent(
+                            userHandle: appState.user.handle,
+                            userName: appState.user.name,
+                            weeklyPoints: appState.user.weeklyPoints,
+                            streakDays: appState.user.streakDays,
+                            sharingMode: appState.user.privacyMode.rawValue,
+                            healthAuthorizationState: appState.healthAuthorizationState,
+                            garminConnectionState: appState.garminConnectionState,
+                            metrics: metrics,
+                            onPrepareHealth: appState.requestHealthAccessPreview,
+                            onPrepareGarmin: appState.prepareGarminConnectionPreview,
+                            onMarkGarminConnected: appState.markGarminConnectedPreview
+                        )
+                        .frame(minHeight: height)
+                    }
+                    .scrollIndicators(.hidden)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.white.ignoresSafeArea())
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -60,8 +68,11 @@ private struct ProfileFullHeightContent: View {
     var streakDays: Int
     var sharingMode: String
     var healthAuthorizationState: HealthAuthorizationState
+    var garminConnectionState: GarminConnectionState
     var metrics: ProfileMetrics
     var onPrepareHealth: () -> Void
+    var onPrepareGarmin: () -> Void
+    var onMarkGarminConnected: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -107,6 +118,15 @@ private struct ProfileFullHeightContent: View {
 
             Spacer(minLength: metrics.sectionSpacer)
 
+            GarminConnectionCard(
+                state: garminConnectionState,
+                metrics: metrics,
+                onPrepare: onPrepareGarmin,
+                onMarkConnected: onMarkGarminConnected
+            )
+
+            Spacer(minLength: metrics.sectionSpacer)
+
             Button(action: onPrepareHealth) {
                 HStack(spacing: metrics.rowGap) {
                     Image(systemName: "heart.fill")
@@ -141,6 +161,115 @@ private struct ProfileFullHeightContent: View {
         .frame(width: metrics.contentWidth)
         .padding(.horizontal, metrics.horizontalPadding)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+private struct GarminConnectionCard: View {
+    var state: GarminConnectionState
+    var metrics: ProfileMetrics
+    var onPrepare: () -> Void
+    var onMarkConnected: () -> Void
+
+    var body: some View {
+        Card(background: Color.dilGreen.opacity(0.13), padding: metrics.cardPadding, cornerRadius: metrics.cornerRadius) {
+            VStack(alignment: .leading, spacing: metrics.rowGap) {
+                HStack(alignment: .top, spacing: metrics.rowGap) {
+                    AdaptiveIconTile(color: .dilGreen, icon: "figure.run", size: Fluid.clamp(metrics.width * 0.13, min: 48, max: 58))
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Garmin Forerunner 165")
+                            .font(.system(size: metrics.bodyFont, weight: .bold))
+                            .foregroundStyle(Color.dilInk)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.76)
+                        Text("Sync through Garmin Connect and Apple Health.")
+                            .font(.system(size: metrics.bodyFont * 0.82, weight: .medium))
+                            .foregroundStyle(Color.dilMuted)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Text(state.statusText)
+                        .font(.system(size: metrics.bodyFont * 0.68, weight: .bold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 7)
+                        .foregroundStyle(statusColor)
+                        .background(statusColor.opacity(0.16), in: Capsule())
+                }
+
+                VStack(alignment: .leading, spacing: 7) {
+                    ComplianceRow(icon: "1.circle.fill", text: "Pair the watch in Garmin Connect.", metrics: metrics)
+                    ComplianceRow(icon: "2.circle.fill", text: "Allow Garmin Connect to share steps, heart rate, sleep, workouts, and weight with Apple Health.", metrics: metrics)
+                    ComplianceRow(icon: "3.circle.fill", text: "Good Morning reads only the Apple Health categories you approve.", metrics: metrics)
+                    ComplianceRow(icon: "map.fill", text: "Detailed GPS route maps may require future Garmin partner API approval.", metrics: metrics)
+                }
+
+                Button(action: primaryAction) {
+                    HStack(spacing: metrics.rowGap) {
+                        Image(systemName: state == .connected ? "checkmark.seal.fill" : "link.circle.fill")
+                            .font(.system(size: metrics.bodyFont, weight: .bold))
+                        Text(primaryTitle)
+                            .font(.system(size: metrics.bodyFont, weight: .bold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.78)
+                        Spacer(minLength: 0)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: metrics.bodyFont, weight: .semibold))
+                    }
+                    .padding(.horizontal, metrics.cardPadding)
+                    .padding(.vertical, metrics.cardPadding * 0.78)
+                    .frame(maxWidth: .infinity)
+                    .foregroundStyle(.white)
+                    .background(Color.dilInk, in: RoundedRectangle(cornerRadius: metrics.cornerRadius * 0.72, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .disabled(state == .connected)
+                .opacity(state == .connected ? 0.86 : 1)
+
+                if state == .setupReady {
+                    Button(action: onMarkConnected) {
+                        Text("I finished setup in Apple Health")
+                            .font(.system(size: metrics.bodyFont * 0.78, weight: .bold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, metrics.cardPadding * 0.62)
+                            .foregroundStyle(Color.dilInk)
+                            .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: metrics.cornerRadius * 0.64, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var primaryTitle: String {
+        switch state {
+        case .notConnected:
+            "Connect Garmin via Apple Health"
+        case .setupReady:
+            "Waiting for Apple Health access"
+        case .connected:
+            "Garmin sync ready"
+        }
+    }
+
+    private var statusColor: Color {
+        switch state {
+        case .notConnected:
+            .dilMuted
+        case .setupReady:
+            .dilGold
+        case .connected:
+            .dilGreen
+        }
+    }
+
+    private func primaryAction() {
+        guard state != .connected else { return }
+        onPrepare()
     }
 }
 

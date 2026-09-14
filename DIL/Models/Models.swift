@@ -129,3 +129,20 @@ enum HealthAuthorizationState: String {
     case authorized
     case denied
 }
+
+enum GarminConnectionState: String {
+    case notConnected
+    case setupReady
+    case connected
+
+    var statusText: String {
+        switch self {
+        case .notConnected:
+            "Not connected"
+        case .setupReady:
+            "Ready to sync"
+        case .connected:
+            "Connected"
+        }
+    }
+}

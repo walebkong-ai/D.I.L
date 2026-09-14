@@ -6,6 +6,7 @@ final class AppState: ObservableObject {
     @Published var leaderboard = Leaderboard.sample
     @Published var healthAuthorizationState: HealthAuthorizationState = .notRequested
     @Published var garminConnectionState: GarminConnectionState = .notConnected
+    @Published var healthInsightSnapshot = HealthInsightsEngine.makePreviewSnapshot()
 
     var dailyPointTotal: Int {
         dailyPlan.categories.reduce(0) { $0 + $1.pointsEarned }

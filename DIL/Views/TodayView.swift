@@ -20,6 +20,8 @@ struct TodayView: View {
                         isCompact: screenWidth < 390
                     )
 
+                    HealthInsightsCard(snapshot: appState.healthInsightSnapshot, isCompact: screenWidth < 390)
+
                     CategoryGrid(categories: appState.dailyPlan.categories, screenWidth: screenWidth)
 
                     InsightCard(insight: appState.dailyPlan.insights[0])
@@ -41,6 +43,148 @@ struct TodayView: View {
 
     private var formattedDate: String {
         appState.dailyPlan.date.formatted(.dateTime.weekday(.wide).month(.abbreviated).day())
+    }
+}
+
+private struct HealthInsightsCard: View {
+    var snapshot: HealthInsightSnapshot
+    var isCompact: Bool
+
+    var body: some View {
+        Card(background: Color.dilPurple.opacity(0.17), padding: isCompact ? 16 : 18) {
+            VStack(alignment: .leading, spacing: isCompact ? 14 : 16) {
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: "waveform.path.ecg.rectangle.fill")
+                        .font(.title2.weight(.bold))
+                        .foregroundStyle(Color.dilPurple)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Health Insights")
+                            .font(.title3.weight(.bold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.82)
+                        Text(snapshot.dataQuality)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Color.dilMuted)
+                    }
+                    Spacer(minLength: 0)
+                }
+
+                HStack(spacing: 10) {
+                    HealthScoreTile(title: "Sleep", value: snapshot.sleepScore, color: .dilBlue, isCompact: isCompact)
+                    HealthScoreTile(title: "Recovery", value: snapshot.recoveryScore, color: .dilGreen, isCompact: isCompact)
+                    HealthActivityTile(label: snapshot.activityLabel, isCompact: isCompact)
+                }
+
+                Text(snapshot.dailySummary)
+                    .font(.subheadline)
+                    .foregroundStyle(Color.dilMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Focus today")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(Color.dilMuted)
+                        .textCase(.uppercase)
+                    Text(snapshot.focusRecommendation)
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(Color.dilInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                VStack(spacing: 8) {
+                    ForEach(Array(snapshot.recoveryDrivers.prefix(3))) { driver in
+                        HealthDriverRow(driver: driver)
+                    }
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct HealthScoreTile: View {
+    var title: String
+    var value: Int
+    var color: Color
+    var isCompact: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(Color.dilMuted)
+                .textCase(.uppercase)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                Text("\(value)")
+                    .font(.system(size: isCompact ? 28 : 32, weight: .black, design: .rounded))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                Text("/100")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Color.dilMuted)
+            }
+            ProgressBar(progress: Double(value) / 100, color: color)
+        }
+        .padding(isCompact ? 10 : 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.white.opacity(0.70), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+}
+
+private struct HealthActivityTile: View {
+    var label: String
+    var isCompact: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Activity")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(Color.dilMuted)
+                .textCase(.uppercase)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+            Text(label)
+                .font(.system(size: isCompact ? 23 : 27, weight: .black, design: .rounded))
+                .lineLimit(1)
+                .minimumScaleFactor(0.62)
+            ProgressBar(progress: label == "Active" ? 0.9 : label == "Normal" ? 0.62 : 0.28, color: .dilOrange)
+        }
+        .padding(isCompact ? 10 : 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.white.opacity(0.70), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+}
+
+private struct HealthDriverRow: View {
+    var driver: HealthScoreDriver
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: driver.impact.symbol)
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(color)
+                .frame(width: 20)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(driver.label)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(Color.dilInk)
+                Text(driver.detail)
+                    .font(.caption)
+                    .foregroundStyle(Color.dilMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    private var color: Color {
+        switch driver.impact {
+        case .positive: .dilGreen
+        case .neutral: .dilGold
+        case .negative: .dilOrange
+        }
     }
 }
 

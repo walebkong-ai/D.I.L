@@ -9,11 +9,20 @@ struct LeaderboardView: View {
                 AdaptiveScreen { screenWidth in
                     HeaderView(eyebrow: appState.leaderboard.seasonTitle, title: "Leaderboard", systemImage: "trophy.fill")
 
+                    if appState.leaderboard.entries.isEmpty {
+                        EmptyStatePanel(
+                            icon: "person.2.slash.fill",
+                            title: "No friends connected",
+                            detail: "Friend invitations and online rankings are not available yet. Your points this week: \(appState.user.weeklyPoints).",
+                            color: .dilGold
+                        )
+                    }
+
                     Card(background: .dilGold.opacity(0.25)) {
                         VStack(alignment: .leading, spacing: 10) {
                             Text("Points only")
                                 .font(.title2.weight(.bold))
-                            Text("Friends see total points, streaks, and badges. Private health, grades, mood, journal, and body metrics are never shown by default.")
+                            Text("Your points are based on completed goals. No health data or activity is currently shared with friends.")
                                 .font(.subheadline)
                                 .foregroundStyle(Color.dilMuted)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -21,23 +30,27 @@ struct LeaderboardView: View {
                     }
 
                     VStack(spacing: 12) {
+                        if !appState.leaderboard.entries.isEmpty {
+                            SectionHeader(title: "Rankings", detail: "Points only")
+                        }
                         ForEach(appState.leaderboard.entries) { entry in
                             LeaderboardRow(entry: entry, isCurrentUser: entry.name == appState.user.name, isCompact: screenWidth < 390)
                         }
                     }
 
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Challenges")
-                            .font(.title2.weight(.bold))
-                        ForEach(appState.leaderboard.challenges) { challenge in
-                            ChallengeCard(challenge: challenge)
+                    if !appState.leaderboard.challenges.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            SectionHeader(title: "Challenges")
+                            ForEach(appState.leaderboard.challenges) { challenge in
+                                ChallengeCard(challenge: challenge)
+                            }
                         }
                     }
                 }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.white.ignoresSafeArea())
+        .background(Color.dilBackground.ignoresSafeArea())
     }
 }
 
@@ -76,7 +89,11 @@ private struct LeaderboardRow: View {
                 .foregroundStyle(Color.dilMuted)
         }
         .padding(isCompact ? 12 : 14)
-        .background(isCurrentUser ? Color.dilGold.opacity(0.30) : .white, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .background(isCurrentUser ? Color.dilGold.opacity(0.30) : .white, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color.dilLine, lineWidth: 1)
+        )
     }
 }
 

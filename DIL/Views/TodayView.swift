@@ -7,6 +7,10 @@ struct TodayView: View {
         NavigationStack {
             ScreenBackground {
                 AdaptiveScreen { screenWidth in
+                    if let message = appState.persistenceMessage {
+                        Text(message).font(.footnote).foregroundStyle(.red)
+                        Button("Retry loading goals") { appState.retryActivityLoad() }
+                    }
                     HeaderView(
                         eyebrow: formattedDate,
                         title: "Good morning, \(appState.user.name)",
@@ -20,29 +24,122 @@ struct TodayView: View {
                         isCompact: screenWidth < 390
                     )
 
-                    HealthInsightsCard(snapshot: appState.healthInsightSnapshot, isCompact: screenWidth < 390)
+                    TodaySummaryStrip(
+                        completed: appState.dailyPlan.tasks.filter(\.isComplete).count,
+                        total: appState.dailyPlan.tasks.count,
+                        categories: appState.dailyPlan.categories.filter { $0.pointsEarned > 0 }.count,
+                        weeklyPoints: appState.user.weeklyPoints
+                    )
 
+                    if appState.healthReadState == .partial || appState.healthReadState == .ready {
+                        HealthInsightsCard(snapshot: appState.healthInsightSnapshot, isCompact: screenWidth < 390)
+                        if let summary = appState.latestHealthSummary {
+                            RecordedHealthCard(summary: summary)
+                        }
+                    } else {
+                        EmptyStatePanel(
+                            icon: "heart.text.square.fill",
+                            title: "Health insights are waiting",
+                            detail: appState.healthReadState == .notRequested ? "Connect Health from Profile to load available records." : appState.healthMessage,
+                            color: .dilPurple
+                        )
+                    }
+
+                    SectionHeader(title: "Category Pace", detail: "\(appState.dailyPointTotal) pts")
                     CategoryGrid(categories: appState.dailyPlan.categories, screenWidth: screenWidth)
 
                     InsightCard(insight: appState.dailyPlan.insights[0])
 
+                    SectionHeader(title: "Today’s Goals", detail: "\(appState.dailyPlan.tasks.filter(\.isComplete).count)/\(appState.dailyPlan.tasks.count) done")
                     VStack(spacing: 12) {
                         ForEach(appState.dailyPlan.tasks) { task in
-                            TaskRow(task: task, isCompact: screenWidth < 390) {
+                            TaskRow(task: task, categoryColor: categoryColor(for: task.categoryName), isCompact: screenWidth < 390) {
                                 appState.completeTask(task)
                             }
                         }
+                    }
+
+                    if appState.dailyPlan.tasks.isEmpty {
+                        EmptyStatePanel(
+                            icon: "target",
+                            title: "Plan the first move",
+                            detail: "Add a goal from the Goals tab and it will show up here with points for today.",
+                            color: .dilGreen
+                        )
                     }
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.white.ignoresSafeArea())
+        .background(Color.dilBackground.ignoresSafeArea())
     }
 
     private var formattedDate: String {
         appState.dailyPlan.date.formatted(.dateTime.weekday(.wide).month(.abbreviated).day())
+    }
+
+    private func categoryColor(for name: String) -> Color {
+        appState.dailyPlan.categories.first(where: { $0.name == name })?.color ?? .dilInk
+    }
+}
+
+private struct TodaySummaryStrip: View {
+    var completed: Int
+    var total: Int
+    var categories: Int
+    var weeklyPoints: Int
+
+    var body: some View {
+        HStack(spacing: 10) {
+            MetricBlock(title: "Done", value: "\(completed)/\(total)", detail: "goals", color: .dilGreen)
+            MetricBlock(title: "Range", value: "\(categories)", detail: "categories", color: .dilBlue)
+            MetricBlock(title: "Week", value: "\(weeklyPoints)", detail: "points", color: .dilOrange)
+        }
+    }
+}
+
+private struct RecordedHealthCard: View {
+    var summary: DailyHealthSummary
+
+    var body: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 14) {
+                SectionHeader(title: "Recorded Today", detail: summary.sourceDevice)
+
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: 10)], spacing: 10) {
+                    HealthMetricPill(title: "Sleep", value: summary.sleepMinutes.map { "\(Int($0)) min" } ?? "Unavailable", color: .dilBlue)
+                    HealthMetricPill(title: "Steps", value: summary.steps.map { "\((Int($0)))" } ?? "Unavailable", color: .dilGreen)
+                    HealthMetricPill(title: "Energy", value: summary.activeEnergy.map { "\(Int($0)) kcal" } ?? "Unavailable", color: .dilOrange)
+                    HealthMetricPill(title: "RHR", value: summary.restingHeartRate.map { "\(Int($0)) bpm" } ?? "Unavailable", color: .dilPurple)
+                    HealthMetricPill(title: "HRV", value: summary.heartRateVariability.map { "\(Int($0)) ms" } ?? "Unavailable", color: .dilGold)
+                    HealthMetricPill(title: "Workout", value: summary.workoutLoad.map { "\(Int($0)) min" } ?? "Unavailable", color: .mint)
+                }
+            }
+        }
+    }
+}
+
+private struct HealthMetricPill: View {
+    var title: String
+    var value: String
+    var color: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(title)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(Color.dilMuted)
+                .textCase(.uppercase)
+            Text(value)
+                .font(.headline.weight(.black))
+                .foregroundStyle(Color.dilInk)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(color.opacity(0.11), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 }
 
@@ -104,7 +201,7 @@ private struct HealthInsightsCard: View {
 
 private struct HealthScoreTile: View {
     var title: String
-    var value: Int
+    var value: Int?
     var color: Color
     var isCompact: Bool
 
@@ -117,7 +214,7 @@ private struct HealthScoreTile: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
             HStack(alignment: .firstTextBaseline, spacing: 2) {
-                Text("\(value)")
+                Text(value.map(String.init) ?? "—")
                     .font(.system(size: isCompact ? 28 : 32, weight: .black, design: .rounded))
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
@@ -125,11 +222,11 @@ private struct HealthScoreTile: View {
                     .font(.caption.weight(.bold))
                     .foregroundStyle(Color.dilMuted)
             }
-            ProgressBar(progress: Double(value) / 100, color: color)
+            if let value { ProgressBar(progress: Double(value) / 100, color: color) }
         }
         .padding(isCompact ? 10 : 12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.white.opacity(0.70), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background(.white.opacity(0.70), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 }
 
@@ -149,11 +246,10 @@ private struct HealthActivityTile: View {
                 .font(.system(size: isCompact ? 23 : 27, weight: .black, design: .rounded))
                 .lineLimit(1)
                 .minimumScaleFactor(0.62)
-            ProgressBar(progress: label == "Active" ? 0.9 : label == "Normal" ? 0.62 : 0.28, color: .dilOrange)
         }
         .padding(isCompact ? 10 : 12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.white.opacity(0.70), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background(.white.opacity(0.70), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 }
 
@@ -221,7 +317,7 @@ private struct ScoreHero: View {
 
                 ProgressBar(progress: progress, color: .dilGold)
 
-                Text("You are 90 points from passing Maya this week.")
+                Text("Points come from your completed daily goals.")
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(.white.opacity(0.74))
             }
@@ -288,19 +384,20 @@ private struct InsightCard: View {
 
 private struct TaskRow: View {
     var task: DailyTask
+    var categoryColor: Color
     var isCompact: Bool
     var action: () -> Void
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: isCompact ? 10 : 14) {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(task.isComplete ? Color.dilGreen : Color.white)
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(task.isComplete ? Color.dilGreen : categoryColor.opacity(0.15))
                     .frame(width: isCompact ? 44 : 50, height: isCompact ? 44 : 50)
                     .overlay {
                         Image(systemName: task.isComplete ? "checkmark" : task.icon)
                             .font(.headline)
-                            .foregroundStyle(task.isComplete ? Color.white : Color.dilInk)
+                            .foregroundStyle(task.isComplete ? Color.white : categoryColor)
                     }
 
                 VStack(alignment: .leading, spacing: 4) {
@@ -317,12 +414,16 @@ private struct TaskRow: View {
 
                 Text("+\(task.points)")
                     .font(.headline.weight(.bold))
-                    .foregroundStyle(task.isComplete ? Color.dilGreen : Color.dilOrange)
+                    .foregroundStyle(task.isComplete ? Color.dilGreen : categoryColor)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
             }
             .padding(isCompact ? 12 : 14)
-            .background(.white, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .background(.white, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(Color.dilLine, lineWidth: 1)
+            )
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(task.title), \(task.points) points")

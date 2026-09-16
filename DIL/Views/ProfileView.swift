@@ -2,358 +2,319 @@ import SwiftUI
 
 struct ProfileView: View {
     @EnvironmentObject private var appState: AppState
+    @State private var confirmActivityDeletion = false
 
     var body: some View {
         NavigationStack {
             ScreenBackground {
-                GeometryReader { proxy in
-                    let width = proxy.size.width
-                    let height = proxy.size.height
-                    let metrics = ProfileMetrics(width: width, height: height)
+                AdaptiveScreen { _ in
+                    HeaderView(eyebrow: "Your space", title: "Profile", systemImage: "person.crop.circle.fill")
 
-                    ScrollView {
-                        ProfileFullHeightContent(
-                            userHandle: appState.user.handle,
-                            userName: appState.user.name,
-                            weeklyPoints: appState.user.weeklyPoints,
-                            streakDays: appState.user.streakDays,
-                            sharingMode: appState.user.privacyMode.rawValue,
-                            healthAuthorizationState: appState.healthAuthorizationState,
-                            garminConnectionState: appState.garminConnectionState,
-                            metrics: metrics,
-                            onPrepareHealth: appState.requestHealthAccessPreview,
-                            onPrepareGarmin: appState.prepareGarminConnectionPreview,
-                            onMarkGarminConnected: appState.markGarminConnectedPreview
-                        )
-                        .frame(minHeight: height)
+                    ProfileHeroCard(user: appState.user)
+
+                    HStack(spacing: 10) {
+                        MetricBlock(title: "Week", value: "\(appState.user.weeklyPoints)", detail: "points", color: .dilOrange)
+                        MetricBlock(title: "Streak", value: "\(appState.user.streakDays)", detail: "days", color: .dilGreen)
+                        MetricBlock(title: "Sharing", value: appState.user.privacyMode.rawValue, detail: "mode", color: .dilPurple)
                     }
-                    .scrollIndicators(.hidden)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color.white.ignoresSafeArea())
+
+                    HealthConnectionCard(
+                        state: appState.healthReadState,
+                        message: appState.healthMessage,
+                        isRequesting: appState.isRequestingHealth
+                    ) {
+                        Task { await appState.requestHealthAccess() }
+                    }
+
+                    GarminSetupCard()
+
+                    PrivacyCard(
+                        weeklyPoints: appState.user.weeklyPoints,
+                        activityExport: appState.activityExport,
+                        onDeleteActivity: { confirmActivityDeletion = true }
+                    )
+
+                    Card(background: Color.dilGold.opacity(0.16)) {
+                        HStack(alignment: .top, spacing: 12) {
+                            Image(systemName: "info.circle.fill")
+                                .font(.title3.weight(.bold))
+                                .foregroundStyle(Color.dilGold)
+                            Text("Wellness information is for reflection, not medical advice.")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(Color.dilInk)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .confirmationDialog("Delete all daily goals and history? This cannot be undone. Health records are unchanged.", isPresented: $confirmActivityDeletion, titleVisibility: .visible) {
+                Button("Delete activity", role: .destructive) { appState.deleteActivityHistory() }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.white.ignoresSafeArea())
+        .background(Color.dilBackground.ignoresSafeArea())
     }
 }
 
-private struct ProfileMetrics {
-    let width: CGFloat
-    let height: CGFloat
-
-    var horizontalPadding: CGFloat { width * 0.052 }
-    var contentWidth: CGFloat { min(width - horizontalPadding * 2, 480) }
-    var sectionSpacer: CGFloat { height * 0.018 }
-    var outerSpacer: CGFloat { height * 0.02 }
-    var rowGap: CGFloat { width * 0.03 }
-    var cardPadding: CGFloat { width * 0.048 }
-    var cornerRadius: CGFloat { Fluid.clamp(width * 0.058, min: 20, max: 28) }
-    var profileIconSize: CGFloat { Fluid.clamp(width * 0.16, min: 54, max: 76) }
-    var eyebrowFont: CGFloat { Fluid.clamp(width * 0.052, min: 18, max: 24) }
-    var nameFont: CGFloat { Fluid.clamp(width * 0.12, min: 42, max: 62) }
-    var statTitleFont: CGFloat { Fluid.clamp(width * 0.044, min: 15, max: 20) }
-    var statValueFont: CGFloat { Fluid.clamp(width * 0.066, min: 24, max: 34) }
-    var statUnitFont: CGFloat { Fluid.clamp(width * 0.04, min: 14, max: 18) }
-    var cardTitleFont: CGFloat { Fluid.clamp(width * 0.068, min: 25, max: 34) }
-    var bodyFont: CGFloat { Fluid.clamp(width * 0.044, min: 16, max: 21) }
-    var dividerVerticalPadding: CGFloat { height * 0.006 }
-}
-
-private struct ProfileFullHeightContent: View {
-    var userHandle: String
-    var userName: String
-    var weeklyPoints: Int
-    var streakDays: Int
-    var sharingMode: String
-    var healthAuthorizationState: HealthAuthorizationState
-    var garminConnectionState: GarminConnectionState
-    var metrics: ProfileMetrics
-    var onPrepareHealth: () -> Void
-    var onPrepareGarmin: () -> Void
-    var onMarkGarminConnected: () -> Void
+private struct ProfileHeroCard: View {
+    var user: UserProfile
 
     var body: some View {
-        VStack(spacing: 0) {
-            Spacer(minLength: metrics.outerSpacer)
-
-            ProfileIdentityView(
-                eyebrow: userHandle,
-                name: userName,
-                iconSize: metrics.profileIconSize,
-                eyebrowSize: metrics.eyebrowFont,
-                nameSize: metrics.nameFont
-            )
-
-            Spacer(minLength: metrics.sectionSpacer)
-
-            Card(padding: metrics.cardPadding, cornerRadius: metrics.cornerRadius) {
-                HStack(spacing: 0) {
-                    ProfileStat(title: "Weekly", value: "\(weeklyPoints)", unit: "pts", metrics: metrics)
-                    Divider().padding(.vertical, metrics.dividerVerticalPadding)
-                    ProfileStat(title: "Streak", value: "\(streakDays)", unit: "days", metrics: metrics)
-                    Divider().padding(.vertical, metrics.dividerVerticalPadding)
-                    ProfileStat(title: "Sharing", value: sharingMode, unit: "", metrics: metrics)
-                }
-                .frame(maxWidth: .infinity)
-            }
-
-            Spacer(minLength: metrics.sectionSpacer)
-
-            Card(padding: metrics.cardPadding, cornerRadius: metrics.cornerRadius) {
-                VStack(alignment: .leading, spacing: metrics.rowGap) {
-                    Text("Privacy & App Store Readiness")
-                        .font(.system(size: metrics.cardTitleFont, weight: .bold))
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.82)
-                    ComplianceRow(icon: "lock.shield.fill", text: "Health, mood, grades, journal, and body metrics are private by default.", metrics: metrics)
-                    ComplianceRow(icon: "person.crop.circle.badge.checkmark", text: "Friends leaderboard uses points only.", metrics: metrics)
-                    ComplianceRow(icon: "heart.text.square.fill", text: "Apple Health access is requested only when a feature needs it.", metrics: metrics)
-                    ComplianceRow(icon: "trash.fill", text: "Account deletion and data export need to be added before public launch.", metrics: metrics)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .layoutPriority(1)
-
-            Spacer(minLength: metrics.sectionSpacer)
-
-            GarminConnectionCard(
-                state: garminConnectionState,
-                metrics: metrics,
-                onPrepare: onPrepareGarmin,
-                onMarkConnected: onMarkGarminConnected
-            )
-
-            Spacer(minLength: metrics.sectionSpacer)
-
-            Button(action: onPrepareHealth) {
-                HStack(spacing: metrics.rowGap) {
-                    Image(systemName: "heart.fill")
-                        .font(.system(size: metrics.bodyFont, weight: .bold))
-                    Text("Prepare Apple Health Connection")
-                        .font(.system(size: metrics.bodyFont, weight: .bold))
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.82)
-                    Spacer(minLength: metrics.rowGap)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: metrics.bodyFont, weight: .semibold))
-                }
-                .padding(metrics.cardPadding)
-                .frame(maxWidth: .infinity)
-                .foregroundStyle(.white)
-                .background(Color.dilInk, in: RoundedRectangle(cornerRadius: metrics.cornerRadius, style: .continuous))
-            }
-            .buttonStyle(.plain)
-
-            if healthAuthorizationState == .needsSystemPrompt {
-                Spacer(minLength: metrics.sectionSpacer)
-                Card(background: .dilPurple.opacity(0.18), padding: metrics.cardPadding, cornerRadius: metrics.cornerRadius) {
-                    Text("Next implementation step: show Apple’s system permission sheet from the exact feature requesting steps, workouts, sleep, or heart rate.")
-                        .font(.system(size: metrics.bodyFont, weight: .medium))
-                        .foregroundStyle(Color.dilInk)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-
-            Spacer(minLength: metrics.outerSpacer)
-        }
-        .frame(width: metrics.contentWidth)
-        .padding(.horizontal, metrics.horizontalPadding)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-}
-
-private struct GarminConnectionCard: View {
-    var state: GarminConnectionState
-    var metrics: ProfileMetrics
-    var onPrepare: () -> Void
-    var onMarkConnected: () -> Void
-
-    var body: some View {
-        Card(background: Color.dilGreen.opacity(0.13), padding: metrics.cardPadding, cornerRadius: metrics.cornerRadius) {
-            VStack(alignment: .leading, spacing: metrics.rowGap) {
-                HStack(alignment: .top, spacing: metrics.rowGap) {
-                    AdaptiveIconTile(color: .dilGreen, icon: "figure.run", size: Fluid.clamp(metrics.width * 0.13, min: 48, max: 58))
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Garmin Forerunner 165")
-                            .font(.system(size: metrics.bodyFont, weight: .bold))
+        Card(background: Color.dilInk) {
+            HStack(spacing: 14) {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.dilGold)
+                    .frame(width: 64, height: 64)
+                    .overlay {
+                        Text(initials)
+                            .font(.title.weight(.black))
                             .foregroundStyle(Color.dilInk)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.76)
-                        Text("Sync through Garmin Connect and Apple Health.")
-                            .font(.system(size: metrics.bodyFont * 0.82, weight: .medium))
-                            .foregroundStyle(Color.dilMuted)
-                            .fixedSize(horizontal: false, vertical: true)
                     }
 
-                    Spacer(minLength: 0)
-
-                    Text(state.statusText)
-                        .font(.system(size: metrics.bodyFont * 0.68, weight: .bold))
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(user.name)
+                        .font(.system(size: 28, weight: .black, design: .rounded))
+                        .foregroundStyle(.white)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.72)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 7)
-                        .foregroundStyle(statusColor)
-                        .background(statusColor.opacity(0.16), in: Capsule())
+                        .minimumScaleFactor(0.7)
+                    Text(profileDetail.isEmpty ? "Local profile" : profileDetail)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.68))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.76)
                 }
 
-                VStack(alignment: .leading, spacing: 7) {
-                    ComplianceRow(icon: "1.circle.fill", text: "Pair the watch in Garmin Connect.", metrics: metrics)
-                    ComplianceRow(icon: "2.circle.fill", text: "Allow Garmin Connect to share steps, heart rate, sleep, workouts, and weight with Apple Health.", metrics: metrics)
-                    ComplianceRow(icon: "3.circle.fill", text: "Good Morning reads only the Apple Health categories you approve.", metrics: metrics)
-                    ComplianceRow(icon: "map.fill", text: "Detailed GPS route maps may require future Garmin partner API approval.", metrics: metrics)
-                }
+                Spacer(minLength: 0)
+            }
+        }
+    }
 
-                Button(action: primaryAction) {
-                    HStack(spacing: metrics.rowGap) {
-                        Image(systemName: state == .connected ? "checkmark.seal.fill" : "link.circle.fill")
-                            .font(.system(size: metrics.bodyFont, weight: .bold))
-                        Text(primaryTitle)
-                            .font(.system(size: metrics.bodyFont, weight: .bold))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.78)
-                        Spacer(minLength: 0)
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: metrics.bodyFont, weight: .semibold))
+    private var initials: String {
+        let parts = user.name.split(separator: " ")
+        let letters = parts.prefix(2).compactMap(\.first)
+        return letters.isEmpty ? "GM" : String(letters).uppercased()
+    }
+
+    private var profileDetail: String {
+        [user.handle.isEmpty ? nil : user.handle, user.city.isEmpty ? nil : user.city]
+            .compactMap { $0 }
+            .joined(separator: " · ")
+    }
+}
+
+private struct HealthConnectionCard: View {
+    var state: HealthReadState
+    var message: String
+    var isRequesting: Bool
+    var onRequest: () -> Void
+
+    var body: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .top, spacing: 12) {
+                    AdaptiveIconTile(color: .dilPurple, icon: "heart.text.square.fill", size: 54)
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("Apple Health")
+                            .font(.title3.weight(.black))
+                            .foregroundStyle(Color.dilInk)
+                        Text("Optional sleep, activity, and recovery inputs.")
+                            .font(.subheadline)
+                            .foregroundStyle(Color.dilMuted)
                     }
-                    .padding(.horizontal, metrics.cardPadding)
-                    .padding(.vertical, metrics.cardPadding * 0.78)
-                    .frame(maxWidth: .infinity)
+                    Spacer(minLength: 0)
+                    StatusBadge(text: statusText, color: statusColor, icon: statusIcon)
+                }
+
+                Text(message)
+                    .font(.subheadline)
+                    .foregroundStyle(Color.dilMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Button(action: onRequest) {
+                    HStack {
+                        Image(systemName: isRequesting ? "hourglass" : "heart.fill")
+                            .font(.headline.weight(.black))
+                        Text(isRequesting ? "Requesting access…" : "Request Apple Health access")
+                            .font(.headline.weight(.black))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.72)
+                        Spacer()
+                    }
                     .foregroundStyle(.white)
-                    .background(Color.dilInk, in: RoundedRectangle(cornerRadius: metrics.cornerRadius * 0.72, style: .continuous))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
+                    .background(Color.dilInk, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
                 .buttonStyle(.plain)
-                .disabled(state == .connected)
-                .opacity(state == .connected ? 0.86 : 1)
-
-                if state == .setupReady {
-                    Button(action: onMarkConnected) {
-                        Text("I finished setup in Apple Health")
-                            .font(.system(size: metrics.bodyFont * 0.78, weight: .bold))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, metrics.cardPadding * 0.62)
-                            .foregroundStyle(Color.dilInk)
-                            .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: metrics.cornerRadius * 0.64, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-                }
+                .disabled(isRequesting)
+                .opacity(isRequesting ? 0.72 : 1)
+                if isRequesting { ProgressView("Loading Health records") }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
-    private var primaryTitle: String {
+    private var statusText: String {
         switch state {
-        case .notConnected:
-            "Connect Garmin via Apple Health"
-        case .setupReady:
-            "Waiting for Apple Health access"
-        case .connected:
-            "Garmin sync ready"
+        case .notRequested: "Not connected"
+        case .unavailable: "Unavailable"
+        case .loading: "Loading"
+        case .noReadableData: "No data"
+        case .partial: "Partial"
+        case .ready: "Ready"
+        case .failed: "Retry"
         }
     }
 
     private var statusColor: Color {
         switch state {
-        case .notConnected:
-            .dilMuted
-        case .setupReady:
-            .dilGold
-        case .connected:
-            .dilGreen
+        case .ready: .dilGreen
+        case .partial, .loading: .dilGold
+        case .failed, .unavailable: .dilOrange
+        case .notRequested, .noReadableData: .dilMuted
         }
     }
 
-    private func primaryAction() {
-        guard state != .connected else { return }
-        onPrepare()
+    private var statusIcon: String {
+        switch state {
+        case .ready: "checkmark"
+        case .partial, .loading: "clock.fill"
+        case .failed, .unavailable: "exclamationmark"
+        case .notRequested, .noReadableData: "minus"
+        }
     }
 }
 
-private struct ProfileIdentityView: View {
-    var eyebrow: String
-    var name: String
-    var iconSize: CGFloat
-    var eyebrowSize: CGFloat
-    var nameSize: CGFloat
+private struct GarminSetupCard: View {
 
     var body: some View {
-        HStack(alignment: .center, spacing: Fluid.clamp(iconSize * 0.32, min: 14, max: 22)) {
-            Circle()
-                .fill(Color.dilInk)
-                .frame(width: iconSize, height: iconSize)
-                .overlay {
-                    Image(systemName: "person.fill")
-                        .font(.system(size: iconSize * 0.42, weight: .semibold))
-                        .foregroundStyle(.white)
+        Card(background: Color.dilGreen.opacity(0.12)) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .top, spacing: 12) {
+                    AdaptiveIconTile(color: .dilGreen, icon: "figure.run", size: 54)
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("Garmin Forerunner 165")
+                            .font(.title3.weight(.black))
+                            .foregroundStyle(Color.dilInk)
+                        Text("Sync through Garmin Connect into Apple Health.")
+                            .font(.subheadline)
+                            .foregroundStyle(Color.dilMuted)
+                    }
+                    Spacer(minLength: 0)
+                    StatusBadge(text: "Via Health", color: .dilGreen)
                 }
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(eyebrow)
-                    .font(.system(size: eyebrowSize, weight: .semibold))
-                    .foregroundStyle(Color.dilMuted)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-                Text(name)
-                    .font(.system(size: nameSize, weight: .black, design: .rounded))
-                    .foregroundStyle(Color.dilInk)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.72)
+                VStack(alignment: .leading, spacing: 9) {
+                    SetupStep(icon: "1.circle.fill", text: "Pair the watch in Garmin Connect.")
+                    SetupStep(icon: "2.circle.fill", text: "Enable Apple Health sharing in Garmin Connect.")
+                    SetupStep(icon: "3.circle.fill", text: "Approve the Health categories Good Morning asks for.")
+                    Text("Not a direct watch connection. Available fields depend on Garmin Connect; HRV and other metrics may not sync.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
             }
-
-            Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
-private struct ProfileStat: View {
-    var title: String
-    var value: String
-    var unit: String
-    var metrics: ProfileMetrics
-
-    var body: some View {
-        VStack(spacing: Fluid.clamp(metrics.height * 0.004, min: 3, max: 6)) {
-            Text(title)
-                .font(.system(size: metrics.statTitleFont, weight: .semibold))
-                .foregroundStyle(Color.dilMuted)
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
-            Text(value)
-                .font(.system(size: metrics.statValueFont, weight: .black, design: .rounded))
-                .lineLimit(1)
-                .minimumScaleFactor(0.64)
-            if !unit.isEmpty {
-                Text(unit)
-                    .font(.system(size: metrics.statUnitFont, weight: .semibold))
-                    .foregroundStyle(Color.dilMuted)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-            }
-        }
-        .frame(maxWidth: .infinity)
-    }
-}
-
-private struct ComplianceRow: View {
+private struct SetupStep: View {
     var icon: String
     var text: String
-    var metrics: ProfileMetrics
 
     var body: some View {
-        HStack(alignment: .top, spacing: metrics.rowGap) {
+        HStack(alignment: .top, spacing: 9) {
             Image(systemName: icon)
+                .font(.subheadline.weight(.black))
                 .foregroundStyle(Color.dilGreen)
-                .font(.system(size: metrics.bodyFont, weight: .bold))
-                .frame(width: metrics.bodyFont * 1.7)
+                .frame(width: 20)
             Text(text)
-                .font(.system(size: metrics.bodyFont))
+                .font(.subheadline)
+                .foregroundStyle(Color.dilInk)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+private struct PrivacyCard: View {
+    var weeklyPoints: Int
+    var activityExport: String?
+    var onDeleteActivity: () -> Void
+
+    var body: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 13) {
+                HStack {
+                    SectionHeader(title: "Privacy")
+                    Spacer()
+                    NavigationLink {
+                        PrivacyPolicyView()
+                    } label: {
+                        Image(systemName: "chevron.right")
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(Color.dilMuted)
+                    }
+                    .accessibilityLabel("Privacy policy")
+                }
+
+                PrivacyRow(icon: "lock.shield.fill", text: "No account or cloud sharing is enabled.")
+                PrivacyRow(icon: "person.2.slash.fill", text: "Online friend rankings are not available yet.")
+                PrivacyRow(icon: "trophy.fill", text: "Only your weekly point total is shown here: \(weeklyPoints).")
+
+                HStack(spacing: 12) {
+                    if let activityExport {
+                        ShareLink(item: activityExport) {
+                            Label("Export activity", systemImage: "square.and.arrow.up")
+                                .font(.subheadline.weight(.black))
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(Color.dilInk)
+                    }
+
+                    Spacer()
+
+                    Button(role: .destructive, action: onDeleteActivity) {
+                        Label("Delete history", systemImage: "trash")
+                            .font(.subheadline.weight(.black))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.top, 2)
+            }
+        }
+    }
+}
+
+private struct PrivacyRow: View {
+    var icon: String
+    var text: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: icon)
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(Color.dilInk)
+                .frame(width: 22)
+            Text(text)
+                .font(.subheadline)
                 .foregroundStyle(Color.dilMuted)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+}
+
+struct PrivacyPolicyView: View {
+    var body: some View {
+        List {
+            Section("Local logs") {
+                Text("Daily goals, completion state, and past daily plans are stored in this app's UserDefaults on your device to calculate daily and weekly points. Export or delete daily history in Profile. System device backup may include these records.")
+                Text("Your log category, note, and date are stored in a protected file on this device, excluded from backup. They remain until you delete logs or uninstall the app. Export sends a copy only to the destination you choose.")
+            }
+            Section("Health") {
+                Text("Apple Health permissions are requested only when you tap the connection button. Available sleep, steps, energy, workouts, resting heart rate and HRV records are read into memory for display and optional wellness indices. They are not saved to disk or transmitted. Garmin is a possible upstream source, not a direct connection. Revoke permissions in Health.")
+            }
+            Section("Sharing") {
+                Text("The native app has no accounts, advertising, tracking, analytics SDKs, or external AI calls. Logs are not shared with friends or sent to us. Delete and export local logs from Track.")
+            }
+        }.navigationTitle("Privacy policy")
     }
 }

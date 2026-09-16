@@ -2,329 +2,64 @@ import SwiftUI
 
 struct TodayView: View {
     @EnvironmentObject private var appState: AppState
+    private var available: Int {
+        appState.dailyPlan.categories.reduce(0) { total, category in
+            total + min(category.dailyCap, appState.dailyPlan.tasks.filter { $0.categoryName == category.name }.reduce(0) { $0 + $1.points })
+        }
+    }
+    private var progress: Double { available > 0 ? Double(appState.dailyPointTotal) / Double(available) : 0 }
+    private var remaining: [DailyTask] { appState.dailyPlan.tasks.filter { !$0.isComplete }.sorted { $0.points > $1.points } }
 
     var body: some View {
         NavigationStack {
             ScreenBackground {
-                AdaptiveScreen { screenWidth in
-                    HeaderView(
-                        eyebrow: formattedDate,
-                        title: "Good morning, \(appState.user.name)",
-                        systemImage: "sun.max.fill"
-                    )
-
-                    ScoreHero(
-                        points: appState.dailyPointTotal,
-                        maxPoints: appState.maxDailyPoints,
-                        progress: appState.dailyProgress,
-                        isCompact: screenWidth < 390
-                    )
-
-                    HealthInsightsCard(snapshot: appState.healthInsightSnapshot, isCompact: screenWidth < 390)
-
-                    CategoryGrid(categories: appState.dailyPlan.categories, screenWidth: screenWidth)
-
-                    InsightCard(insight: appState.dailyPlan.insights[0])
-
-                    VStack(spacing: 12) {
-                        ForEach(appState.dailyPlan.tasks) { task in
-                            TaskRow(task: task, isCompact: screenWidth < 390) {
-                                appState.completeTask(task)
-                            }
+                AdaptiveScreen { _ in
+                    HeaderView(eyebrow: appState.dailyPlan.date.formatted(.dateTime.weekday(.wide).month(.abbreviated).day()),
+                               title: appState.user.name == "You" ? "Good morning" : "Good morning, \(appState.user.name)", systemImage: "sun.max.fill")
+                    if let message = appState.persistenceMessage {
+                        Text(message).foregroundStyle(.red)
+                        Button("Retry loading goals") { appState.retryActivityLoad() }
+                    }
+                    Card {
+                        VStack(alignment: .leading, spacing: 12) {
+                            SectionHeader(title: "Today")
+                            Text("\(appState.dailyPointTotal) pts").font(.largeTitle.bold())
+                            Text(available == 0 ? "Build your day" : remaining.isEmpty ? "Today's goals complete" : progress >= 0.5 ? "Good progress" : "Getting started").font(.headline)
+                            ProgressBar(progress: progress, color: .dilAccent)
+                            Text(available == 0 ? "Add a daily goal to get started." : "\(Int(progress * 100))% of today's \(available) available points")
+                                .font(.subheadline).foregroundStyle(Color.dilMuted)
+                            NavigationLink("View points breakdown") { PointsDetailView() }
                         }
                     }
-                }
-            }
-            .navigationBarTitleDisplayMode(.inline)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.white.ignoresSafeArea())
-    }
-
-    private var formattedDate: String {
-        appState.dailyPlan.date.formatted(.dateTime.weekday(.wide).month(.abbreviated).day())
-    }
-}
-
-private struct HealthInsightsCard: View {
-    var snapshot: HealthInsightSnapshot
-    var isCompact: Bool
-
-    var body: some View {
-        Card(background: Color.dilPurple.opacity(0.17), padding: isCompact ? 16 : 18) {
-            VStack(alignment: .leading, spacing: isCompact ? 14 : 16) {
-                HStack(alignment: .top, spacing: 12) {
-                    Image(systemName: "waveform.path.ecg.rectangle.fill")
-                        .font(.title2.weight(.bold))
-                        .foregroundStyle(Color.dilPurple)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Health Insights")
-                            .font(.title3.weight(.bold))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.82)
-                        Text(snapshot.dataQuality)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(Color.dilMuted)
+                    SectionHeader(title: "Top priorities")
+                    if remaining.isEmpty {
+                        EmptyStatePanel(icon: "checkmark.circle", title: appState.dailyPlan.tasks.isEmpty ? "No goals yet" : "Nothing left today",
+                                        detail: appState.dailyPlan.tasks.isEmpty ? "Create your first daily goal." : "You've completed all of today's goals.")
+                    } else {
+                        ForEach(remaining.prefix(3)) { task in GoalSummaryRow(task: task) }
                     }
-                    Spacer(minLength: 0)
+                    NavigationLink("View all goals") { GoalsView() }.frame(maxWidth: .infinity, alignment: .leading)
+                    HealthOverviewView()
+                    SectionHeader(title: "Goals")
+                    Text("\(appState.dailyPlan.tasks.filter(\.isComplete).count) of \(appState.dailyPlan.tasks.count) complete")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    ProgressBar(progress: appState.dailyPlan.tasks.isEmpty ? 0 : Double(appState.dailyPlan.tasks.filter(\.isComplete).count) / Double(appState.dailyPlan.tasks.count), color: .dilAccent)
                 }
-
-                HStack(spacing: 10) {
-                    HealthScoreTile(title: "Sleep", value: snapshot.sleepScore, color: .dilBlue, isCompact: isCompact)
-                    HealthScoreTile(title: "Recovery", value: snapshot.recoveryScore, color: .dilGreen, isCompact: isCompact)
-                    HealthActivityTile(label: snapshot.activityLabel, isCompact: isCompact)
-                }
-
-                Text(snapshot.dailySummary)
-                    .font(.subheadline)
-                    .foregroundStyle(Color.dilMuted)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Focus today")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(Color.dilMuted)
-                        .textCase(.uppercase)
-                    Text(snapshot.focusRecommendation)
-                        .font(.headline.weight(.semibold))
-                        .foregroundStyle(Color.dilInk)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                VStack(spacing: 8) {
-                    ForEach(Array(snapshot.recoveryDrivers.prefix(3))) { driver in
-                        HealthDriverRow(driver: driver)
-                    }
-                }
-            }
-        }
-        .accessibilityElement(children: .combine)
-    }
-}
-
-private struct HealthScoreTile: View {
-    var title: String
-    var value: Int
-    var color: Color
-    var isCompact: Bool
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.caption.weight(.bold))
-                .foregroundStyle(Color.dilMuted)
-                .textCase(.uppercase)
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
-            HStack(alignment: .firstTextBaseline, spacing: 2) {
-                Text("\(value)")
-                    .font(.system(size: isCompact ? 28 : 32, weight: .black, design: .rounded))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                Text("/100")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(Color.dilMuted)
-            }
-            ProgressBar(progress: Double(value) / 100, color: color)
-        }
-        .padding(isCompact ? 10 : 12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.white.opacity(0.70), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-    }
-}
-
-private struct HealthActivityTile: View {
-    var label: String
-    var isCompact: Bool
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Activity")
-                .font(.caption.weight(.bold))
-                .foregroundStyle(Color.dilMuted)
-                .textCase(.uppercase)
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
-            Text(label)
-                .font(.system(size: isCompact ? 23 : 27, weight: .black, design: .rounded))
-                .lineLimit(1)
-                .minimumScaleFactor(0.62)
-            ProgressBar(progress: label == "Active" ? 0.9 : label == "Normal" ? 0.62 : 0.28, color: .dilOrange)
-        }
-        .padding(isCompact ? 10 : 12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.white.opacity(0.70), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-    }
-}
-
-private struct HealthDriverRow: View {
-    var driver: HealthScoreDriver
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: driver.impact.symbol)
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(color)
-                .frame(width: 20)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(driver.label)
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(Color.dilInk)
-                Text(driver.detail)
-                    .font(.caption)
-                    .foregroundStyle(Color.dilMuted)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 0)
-        }
-    }
-
-    private var color: Color {
-        switch driver.impact {
-        case .positive: .dilGreen
-        case .neutral: .dilGold
-        case .negative: .dilOrange
+            }.navigationBarTitleDisplayMode(.inline)
         }
     }
 }
 
-private struct ScoreHero: View {
-    var points: Int
-    var maxPoints: Int
-    var progress: Double
-    var isCompact: Bool
-
+private struct PointsDetailView: View {
+    @EnvironmentObject private var appState: AppState
     var body: some View {
-        Card(background: .dilInk, padding: isCompact ? 16 : 18) {
-            VStack(alignment: .leading, spacing: isCompact ? 14 : 18) {
-                HStack {
-                    Text("Today Score")
-                        .font(.headline)
-                        .foregroundStyle(.white.opacity(0.78))
-                    Spacer()
-                    Image(systemName: "sparkles")
-                        .foregroundStyle(Color.dilGold)
-                }
-
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text("\(points)")
-                        .font(.system(size: isCompact ? 48 : 58, weight: .black, design: .rounded))
-                        .foregroundStyle(.white)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.72)
-                    Text("/ \(maxPoints) pts")
-                        .font((isCompact ? Font.body : Font.title3).weight(.semibold))
-                        .foregroundStyle(.white.opacity(0.62))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.78)
-                }
-
-                ProgressBar(progress: progress, color: .dilGold)
-
-                Text("You are 90 points from passing Maya this week.")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.white.opacity(0.74))
-            }
-        }
-    }
-}
-
-private struct CategoryGrid: View {
-    var categories: [PointCategory]
-    var screenWidth: CGFloat
-
-    private var columns: [GridItem] {
-        let minimum = screenWidth < 390 ? 144.0 : 160.0
-        return [GridItem(.adaptive(minimum: minimum), spacing: 12)]
-    }
-
-    var body: some View {
-        LazyVGrid(columns: columns, spacing: 12) {
-            ForEach(categories) { category in
-                Card(background: category.color.opacity(0.22)) {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Image(systemName: category.icon)
-                            .font(.title3.weight(.bold))
-                            .foregroundStyle(category.color)
-                        Text(category.name)
-                            .font(.headline)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.82)
-                        Text("\(category.pointsEarned) / \(category.dailyCap) pts")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(Color.dilMuted)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.78)
-                        ProgressBar(progress: category.progress, color: category.color)
-                    }
-                    .frame(maxWidth: .infinity, minHeight: 110, alignment: .leading)
+        List {
+            Section("Today's points") {
+                ForEach(appState.dailyPlan.categories) { category in
+                    MetricRow(title: category.name, value: "\(category.pointsEarned) pts", detail: "Daily limit: \(category.dailyCap) pts")
                 }
             }
-        }
-    }
-}
-
-private struct InsightCard: View {
-    var insight: Insight
-
-    var body: some View {
-        Card(background: Color.dilBlue.opacity(0.20)) {
-            HStack(alignment: .top, spacing: 14) {
-                Image(systemName: "brain.head.profile")
-                    .font(.title2.weight(.bold))
-                    .foregroundStyle(Color.dilBlue)
-                VStack(alignment: .leading, spacing: 7) {
-                    Text(insight.title)
-                        .font(.headline)
-                    Text(insight.message)
-                        .font(.subheadline)
-                        .foregroundStyle(Color.dilMuted)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
-    }
-}
-
-private struct TaskRow: View {
-    var task: DailyTask
-    var isCompact: Bool
-    var action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: isCompact ? 10 : 14) {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(task.isComplete ? Color.dilGreen : Color.white)
-                    .frame(width: isCompact ? 44 : 50, height: isCompact ? 44 : 50)
-                    .overlay {
-                        Image(systemName: task.isComplete ? "checkmark" : task.icon)
-                            .font(.headline)
-                            .foregroundStyle(task.isComplete ? Color.white : Color.dilInk)
-                    }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(task.title)
-                        .font(.headline)
-                        .foregroundStyle(Color.dilInk)
-                    Text(task.detail)
-                        .font(.subheadline)
-                        .foregroundStyle(Color.dilMuted)
-                        .lineLimit(2)
-                }
-
-                Spacer()
-
-                Text("+\(task.points)")
-                    .font(.headline.weight(.bold))
-                    .foregroundStyle(task.isComplete ? Color.dilGreen : Color.dilOrange)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-            }
-            .padding(isCompact ? 12 : 14)
-            .background(.white, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("\(task.title), \(task.points) points")
+            Section("How points work") { Text("Completed goals earn points up to each category's daily limit. Today's available points reflect the goals you have added, within those limits.") }
+        }.navigationTitle("Points").navigationBarTitleDisplayMode(.inline)
     }
 }

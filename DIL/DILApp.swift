@@ -13,11 +13,13 @@ struct DILApp: App {
 }
 
 private struct AppShellView: View {
+    @EnvironmentObject private var appState: AppState
+    @Environment(\.scenePhase) private var scenePhase
     @State private var selectedTab: AppTab = .today
 
     var body: some View {
         ZStack {
-            Color.white.ignoresSafeArea()
+            Color.dilBackground.ignoresSafeArea()
 
             TabView(selection: $selectedTab) {
                 TodayView()
@@ -41,13 +43,22 @@ private struct AppShellView: View {
                     .tag(AppTab.profile)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.white.ignoresSafeArea())
-            .toolbarBackground(.white, for: .tabBar)
+            .background(Color.dilBackground.ignoresSafeArea())
+            .toolbarBackground(Color.dilSurface, for: .tabBar)
             .toolbarBackground(.visible, for: .tabBar)
             .tint(.dilInk)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.white.ignoresSafeArea())
+        .background(Color.dilBackground.ignoresSafeArea())
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { appState.refreshDay() }
+        }
+        .task {
+            while !Task.isCancelled {
+                if scenePhase == .active { appState.refreshDay() }
+                try? await Task.sleep(for: .seconds(30))
+            }
+        }
     }
 }
 

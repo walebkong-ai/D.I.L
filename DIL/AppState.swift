@@ -7,6 +7,12 @@ final class AppState: ObservableObject {
     @Published var isRequestingHealth = false
     @Published var healthReadState: HealthReadState = .notRequested
     @Published var latestHealthSummary: DailyHealthSummary?
+    @Published private(set) var healthHistory: [DailyHealthSummary] = []
+    @Published private(set) var healthMetricStatuses: [HealthMetricKind: MetricReadStatus] = [:]
+    #if DEBUG
+    @Published private(set) var healthDiagnostics: [HealthSourceDiagnostic] = []
+    @Published private(set) var diagnosticStatuses: [HealthMetricKind: MetricReadStatus] = [:]
+    #endif
     @Published var user = UserProfile(name: "You", handle: "", city: "", weeklyPoints: 0, streakDays: 0, privacyMode: .privateOnly)
     @Published private(set) var dailyPlan = DailyPlan.initial
     @Published var leaderboard = Leaderboard(seasonTitle: "This week", entries: [], challenges: [])
@@ -52,6 +58,12 @@ final class AppState: ObservableObject {
         guard !calendar.isDate(dailyPlan.date, inSameDayAs: now()) else { return }
         loadCurrentDay()
         latestHealthSummary = nil
+        healthHistory = []
+        healthMetricStatuses = [:]
+        #if DEBUG
+        healthDiagnostics = []
+        diagnosticStatuses = [:]
+        #endif
         healthInsightSnapshot = HealthInsightsEngine.buildSnapshot(from: [])
         if healthReadState != .notRequested {
             healthReadState = .noReadableData
@@ -162,15 +174,35 @@ final class AppState: ObservableObject {
         }
         isRequestingHealth = true
         healthReadState = .loading
+        healthInsightSnapshot = HealthInsightsEngine.buildSnapshot(from: [])
+        latestHealthSummary = nil
+        healthHistory = []
+        healthMetricStatuses = [:]
+        #if DEBUG
+        healthDiagnostics = []
+        diagnosticStatuses = [:]
+        #endif
         defer { isRequestingHealth = false }
+        let queryDate = now()
         do {
             try await service.requestCoreWellnessAccess()
-            let summaries = try await service.fetchRecentSummaries()
+            let summaries = try await service.fetchRecentSummaries(now: queryDate, calendar: calendar)
+            guard calendar.isDate(queryDate, inSameDayAs: now()) else {
+                refreshDay()
+                healthReadState = .noReadableData
+                healthMessage = "The date changed while loading. Refresh Health to load today's records."
+                return
+            }
             healthInsightSnapshot = HealthInsightsEngine.buildSnapshot(from: summaries)
             latestHealthSummary = summaries.last
-            let metrics = summaries.last.map { [$0.sleepMinutes, $0.steps, $0.activeEnergy, $0.restingHeartRate, $0.heartRateVariability, $0.workoutLoad].compactMap { $0 }.count } ?? 0
-            healthReadState = metrics == 0 ? .noReadableData : metrics == 6 ? .ready : .partial
-            healthMessage = metrics == 0 ? "No readable samples today. Access may be disabled or records may be absent; Apple does not reveal read denial. Check Health permissions and retry." : "Available Health records loaded. Missing metrics are unavailable. This does not verify Garmin sync."
+            healthHistory = summaries
+            healthMetricStatuses = service.metricStatuses
+            healthReadState = HealthAvailability.state(for: healthMetricStatuses)
+            #if DEBUG
+            healthDiagnostics = service.diagnostics
+            diagnosticStatuses = service.diagnosticStatuses
+            #endif
+            healthMessage = healthReadState == .noReadableData ? "No readable samples today. Access may be disabled or records may be absent; Apple does not reveal read denial. Check Health permissions and retry." : healthReadState == .failed ? "Health records could not be loaded. Check access in Health and retry." : "Available records loaded. Missing or failed metrics remain unavailable; Garmin sync is not verified."
         } catch {
             healthReadState = .failed
             latestHealthSummary = nil

@@ -9,19 +9,38 @@ Updated 2026-09-16. This checklist describes the current native app, not the sta
 ## Daily history
 - [x] Date-keyed records preserve yesterday and stable task IDs; rollover, repeated launches, backward clock selection, corruption protection, v1 migration checked.
 - [ ] Physical-device midnight, time zone travel, DST, and long-history tests.
-- [ ] History browsing UI (export is available).
+- [ ] History browsing UI and export implemented; device interaction verification outstanding.
 
 ## HealthKit
 - [x] Pure calculation tests verify missing inputs never produce scores, including no samples and partial data with a recorded zero.
-- [ ] IN PROGRESS: read-only production queries compile; on-device Health permission/data scenarios still need verification.
+- [ ] Read-only production queries implemented; on-device Health permission/data scenarios still need verification.
 - [ ] Sleep aggregation across midnight/noon, multiple sources, revoked access and partial permissions tested with real records.
-- [ ] Experimental duration/recovery indices validated for product suitability; not diagnostic or clinical scores.
+- [x] Unvalidated sleep/recovery numerical grades disabled; eligible sleep comparisons use recorded minutes only. See [HealthKit audit](healthkit-audit.md).
 - [ ] After permission denial, no-readable-samples state tested on device. Apple does not expose definitive read-denial status.
 
 ## Garmin verification
 - [x] No direct-connect or self-certified connection state drives UI.
 - [ ] BLOCKED: verify each exported metric from a physical Forerunner 165. See [Garmin data limitations](garmin-health-data.md).
 - [ ] Any future direct API needs Garmin approval, secure backend, and consent.
+
+## Dedicated physical Health validation
+All unchecked: no connected iPhone discovered; no Garmin-sourced records inspected. Follow the exact Xcode sequence in [HealthKit audit](healthkit-audit.md).
+- [ ] Fresh Health permission request.
+- [ ] Allow all requested permissions.
+- [ ] Deny all; no false permission/connection claim.
+- [ ] Partial permissions; readable metrics survive missing ones.
+- [ ] Revoke permissions afterward; retry clears stale values.
+- [ ] No Health data; unavailable rather than zero.
+- [ ] Garmin Connect installed and configured.
+- [ ] Garmin data synced from Forerunner 165.
+- [ ] Garmin-originated HealthKit samples checked in Debug diagnostics.
+- [ ] Apple-originated samples checked.
+- [ ] Mixed sources checked against Health totals and sleep union.
+- [ ] Overnight sleep, awake intervals and incomplete window checked.
+- [ ] App killed and relaunched.
+- [ ] App opened after midnight; goals and sleep date attribution checked.
+- [ ] Airplane/offline mode; manual tracking still usable.
+- [ ] Release diagnostics absent; no sensitive logging/network transmission.
 
 ## Friends / leaderboard
 - [x] Static friend entries do not drive native production UI.
@@ -39,7 +58,7 @@ Updated 2026-09-16. This checklist describes the current native app, not the sta
 - [ ] Full accessibility pass, reduced motion, contrast and minimum touch targets.
 
 ## Dark Mode
-- [ ] Custom dashboard palette remains primarily light; native forms adapt. Full dark-mode verification outstanding.
+- [ ] Adaptive palette and native forms implemented; full light/dark-mode device verification outstanding.
 
 ## Dynamic Type
 - [ ] Header/new forms use semantic styles; custom metrics and existing cards still need largest-size testing.

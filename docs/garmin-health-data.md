@@ -1,5 +1,27 @@
 # Garmin through Apple Health
 
+## Canonical verification status (2026-09-16)
+VERIFIED requires actual Garmin-originated records from a physical device; none inspected. LIKELY means documented sharing generally, not guaranteed Forerunner 165 compatibility. UNVERIFIED means no sufficient export evidence. NOT AVAILABLE refers to this app's current HealthKit path, not every future Garmin API.
+
+| Desired metric | Classification | Evidence / scope |
+|---|---|---|
+| Steps | LIKELY | General sharing expectation; device verification required |
+| Workouts | LIKELY | General sharing expectation; recorded duration only in app |
+| Active energy | UNVERIFIED | App reads it; actual Garmin export not inspected |
+| Heart rate | LIKELY | Garmin official guide describes all-day HR and timed high/low; app does not request general HR |
+| Resting heart rate | UNVERIFIED | General HR sharing is not proof of restingHeartRate export |
+| HRV SDNN | UNVERIFIED | Garmin overnight HRV must not be assumed equivalent/exported |
+| Sleep duration | LIKELY | Official sharing guide lists Sleep Analysis |
+| Sleep stages | UNVERIFIED | Sleep Analysis does not establish stage completeness |
+| Respiratory data | UNVERIFIED | Not requested/read by this app |
+| VO2 max | UNVERIFIED | Not requested/read by this app |
+| Body Battery | NOT AVAILABLE | No imported proprietary field/current HealthKit mapping |
+| Training readiness | NOT AVAILABLE | No imported proprietary field/current HealthKit mapping |
+| Stress | NOT AVAILABLE | No Garmin proprietary stress mapping in current path |
+| Recovery time | NOT AVAILABLE | No imported proprietary field/current HealthKit mapping |
+
+The official Garmin support search excerpts were rechecked on 2026-09-16; complete page access remains limited, so no device-export guarantee is claimed. Future proprietary data requires a separately approved direct Garmin API/backend integration and verified field support. Debug diagnostics and exact device instructions are in [HealthKit audit](healthkit-audit.md).
+
 Expected flow: Forerunner 165 → Garmin Connect → Apple Health → Good Morning. No Bluetooth watch pairing, direct Garmin login, partner API, or Garmin connection verification exists in this app.
 
 Good Morning requests read-only sleep, steps, active energy, workouts, resting heart rate, and HRV SDNN permissions, on demand. Availability depends on Health records, individual permissions, Connect version, watch support, and sync completion. Health samples may originate from other devices; this app does not identify the watch as their guaranteed source.

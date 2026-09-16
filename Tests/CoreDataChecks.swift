@@ -66,15 +66,16 @@ struct CoreDataChecks {
             var summary = noSamples
             summary.date = calendar.date(byAdding: .day, value: offset, to: clock)!
             summary.sleepMinutes = 450
+            summary.sleepConfidence = .complete
             realHistory.append(summary)
         }
         let sleepOnly = HealthInsightsEngine.buildSnapshot(from: realHistory)
-        check(sleepOnly.sleepScore == 100 && sleepOnly.recoveryScore == nil, "duration score requires real history; missing recovery stays nil")
+        check(sleepOnly.sleepDifferenceMinutes == 0 && sleepOnly.sleepScore == nil && sleepOnly.recoveryScore == nil, "recorded duration comparison without a health grade")
         for index in realHistory.indices {
             realHistory[index].restingHeartRate = 60
             realHistory[index].heartRateVariability = 50
         }
-        check(HealthInsightsEngine.buildSnapshot(from: realHistory).recoveryScore == 100, "recovery requires real sleep HRV and RHR baselines")
+        check(HealthInsightsEngine.buildSnapshot(from: realHistory).recoveryScore == nil, "unvalidated recovery score stays disabled")
         try store.deleteAll()
         clock = yesterday
         let returned = AppState(defaults: defaults, now: { clock }, calendar: calendar, activityStore: store)
@@ -88,6 +89,7 @@ struct CoreDataChecks {
         try store.deleteAll()
         defaults.set(try JSONEncoder().encode(legacy), forKey: "goodMorning.dailyPlan.v1")
         check(try store.loadDay(for: clock)?.tasks.first?.id == legacy.tasks.first?.id, "v1 migration")
+        HealthProcessingChecks.run(check)
         print("\(count) checks passed")
     }
 }

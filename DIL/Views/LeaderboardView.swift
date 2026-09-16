@@ -8,25 +8,17 @@ struct LeaderboardView: View {
             ScreenBackground {
                 AdaptiveScreen { screenWidth in
                     HeaderView(eyebrow: appState.leaderboard.seasonTitle, title: "Leaderboard", systemImage: "trophy.fill")
+                    MetricSummaryCard(title: "Your week", status: "\(appState.user.weeklyPoints) pts",
+                                      value: appState.leaderboard.entries.first(where: { $0.name == appState.user.name }).map { "Rank \($0.rank)" } ?? "Not ranked")
+                    Text("Leaderboard sharing is off").font(.subheadline).foregroundStyle(Color.dilMuted)
 
                     if appState.leaderboard.entries.isEmpty {
                         EmptyStatePanel(
                             icon: "person.2.slash.fill",
-                            title: "No friends connected",
-                            detail: "Friend invitations and online rankings are not available yet. Your points this week: \(appState.user.weeklyPoints).",
+                            title: "No friends yet",
+                            detail: "Friend invitations and online rankings aren't available yet.",
                             color: .dilGold
                         )
-                    }
-
-                    Card(background: .dilGold.opacity(0.25)) {
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("Points only")
-                                .font(.title2.weight(.bold))
-                            Text("Your points are based on completed goals. No health data or activity is currently shared with friends.")
-                                .font(.subheadline)
-                                .foregroundStyle(Color.dilMuted)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
                     }
 
                     VStack(spacing: 12) {
@@ -34,15 +26,27 @@ struct LeaderboardView: View {
                             SectionHeader(title: "Rankings", detail: "Points only")
                         }
                         ForEach(appState.leaderboard.entries) { entry in
-                            LeaderboardRow(entry: entry, isCurrentUser: entry.name == appState.user.name, isCompact: screenWidth < 390)
+                            NavigationLink {
+                                List {
+                                    MetricRow(title: "Rank", value: "\(entry.rank)")
+                                    MetricRow(title: "Weekly points", value: "\(entry.points) pts")
+                                    MetricRow(title: "Streak", value: "\(entry.streak) days")
+                                    if !entry.badge.isEmpty { Text(entry.badge) }
+                                }.navigationTitle(entry.name)
+                            } label: {
+                                DetailDisclosure(title: "\(entry.rank). \(entry.name)", value: "\(entry.points) pts")
+                            }.buttonStyle(.plain)
                         }
                     }
 
                     if !appState.leaderboard.challenges.isEmpty {
-                        VStack(alignment: .leading, spacing: 12) {
+                        DisclosureGroup("Challenges") {
                             SectionHeader(title: "Challenges")
                             ForEach(appState.leaderboard.challenges) { challenge in
-                                ChallengeCard(challenge: challenge)
+                                NavigationLink {
+                                    List { Text(challenge.detail); MetricRow(title: "Reward", value: "\(challenge.reward) pts"); ProgressBar(progress: challenge.progress, color: .dilAccent) }
+                                        .navigationTitle(challenge.title)
+                                } label: { DetailDisclosure(title: challenge.title, value: "\(Int(challenge.progress * 100))% complete") }.buttonStyle(.plain)
                             }
                         }
                     }
@@ -51,70 +55,5 @@ struct LeaderboardView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.dilBackground.ignoresSafeArea())
-    }
-}
-
-private struct LeaderboardRow: View {
-    var entry: LeaderboardEntry
-    var isCurrentUser: Bool
-    var isCompact: Bool
-
-    var body: some View {
-        HStack(spacing: isCompact ? 10 : 14) {
-            Text("\(entry.rank)")
-                .font((isCompact ? Font.headline : Font.title3).weight(.black))
-                .foregroundStyle(isCurrentUser ? Color.white : Color.dilInk)
-                .frame(width: isCompact ? 38 : 44, height: isCompact ? 38 : 44)
-                .background(isCurrentUser ? Color.dilInk : Color.white, in: Circle())
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(entry.name)
-                    .font(.headline.weight(.bold))
-                    .lineLimit(1)
-                Text("\(entry.streak)-day streak · \(entry.badge)")
-                    .font(.subheadline)
-                    .foregroundStyle(Color.dilMuted)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-            }
-
-            Spacer()
-
-            Text("\(entry.points)")
-                .font((isCompact ? Font.headline : Font.title3).weight(.black))
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
-            Text("pts")
-                .font(.caption.weight(.bold))
-                .foregroundStyle(Color.dilMuted)
-        }
-        .padding(isCompact ? 12 : 14)
-        .background(isCurrentUser ? Color.dilGold.opacity(0.30) : .white, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(Color.dilLine, lineWidth: 1)
-        )
-    }
-}
-
-private struct ChallengeCard: View {
-    var challenge: Challenge
-
-    var body: some View {
-        Card {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(challenge.title).font(.headline.weight(.bold))
-                        Text(challenge.detail).font(.subheadline).foregroundStyle(Color.dilMuted)
-                    }
-                    Spacer()
-                    Text("+\(challenge.reward)")
-                        .font(.headline.weight(.black))
-                        .foregroundStyle(Color.dilOrange)
-                }
-                ProgressBar(progress: challenge.progress, color: .dilOrange)
-            }
-        }
     }
 }

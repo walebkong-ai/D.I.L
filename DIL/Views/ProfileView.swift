@@ -12,39 +12,39 @@ struct ProfileView: View {
 
                     ProfileHeroCard(user: appState.user)
 
-                    HStack(spacing: 10) {
-                        MetricBlock(title: "Week", value: "\(appState.user.weeklyPoints)", detail: "points", color: .dilOrange)
-                        MetricBlock(title: "Streak", value: "\(appState.user.streakDays)", detail: "days", color: .dilGreen)
-                        MetricBlock(title: "Sharing", value: appState.user.privacyMode.rawValue, detail: "mode", color: .dilPurple)
-                    }
-
-                    HealthConnectionCard(
-                        state: appState.healthReadState,
-                        message: appState.healthMessage,
-                        isRequesting: appState.isRequestingHealth
-                    ) {
-                        Task { await appState.requestHealthAccess() }
-                    }
-
+                    NavigationLink {
+                        ScreenBackground {
+                            AdaptiveScreen { _ in
+                                HealthConnectionCard(
+                                    state: appState.healthReadState,
+                                    message: appState.healthMessage,
+                                    isRequesting: appState.isRequestingHealth
+                                ) {
+                                    Task { await appState.requestHealthAccess() }
+                                }
                     GarminSetupCard()
-
-                    PrivacyCard(
-                        weeklyPoints: appState.user.weeklyPoints,
-                        activityExport: appState.activityExport,
-                        onDeleteActivity: { confirmActivityDeletion = true }
-                    )
-
-                    Card(background: Color.dilGold.opacity(0.16)) {
-                        HStack(alignment: .top, spacing: 12) {
-                            Image(systemName: "info.circle.fill")
-                                .font(.title3.weight(.bold))
-                                .foregroundStyle(Color.dilGold)
-                            Text("Wellness information is for reflection, not medical advice.")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(Color.dilInk)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
+                    #if DEBUG
+                    NavigationLink("Health diagnostics") { HealthDiagnosticsView() }
+                    #endif
+                            }
+                        }.navigationTitle("Health connection").navigationBarTitleDisplayMode(.inline)
+                    } label: {
+                        DetailDisclosure(title: "Apple Health", value: healthStatus)
+                    }.buttonStyle(.plain)
+                    NavigationLink {
+                        ScreenBackground {
+                            AdaptiveScreen { _ in
+                                PrivacyCard(
+                                    weeklyPoints: appState.user.weeklyPoints,
+                                    activityExport: appState.activityExport,
+                                    onDeleteActivity: { confirmActivityDeletion = true }
+                                )
+                            }
+                        }.navigationTitle("Privacy and data").navigationBarTitleDisplayMode(.inline)
+                    } label: {
+                        DetailDisclosure(title: "Privacy and data", value: "Stored on this device · Sharing off")
+                    }.buttonStyle(.plain)
+                    NavigationLink("View daily history") { GoalHistoryView() }
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
@@ -55,13 +55,25 @@ struct ProfileView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.dilBackground.ignoresSafeArea())
     }
+
+    private var healthStatus: String {
+        switch appState.healthReadState {
+        case .ready: "Records loaded"
+        case .partial: "Some records loaded"
+        case .loading: "Loading"
+        case .failed: "Needs a retry"
+        case .unavailable: "Unavailable"
+        case .noReadableData: "No readable records"
+        case .notRequested: "Not connected"
+        }
+    }
 }
 
 private struct ProfileHeroCard: View {
     var user: UserProfile
 
     var body: some View {
-        Card(background: Color.dilInk) {
+        Card(background: Color.dilHero) {
             HStack(spacing: 14) {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .fill(Color.dilGold)
@@ -69,15 +81,14 @@ private struct ProfileHeroCard: View {
                     .overlay {
                         Text(initials)
                             .font(.title.weight(.black))
-                            .foregroundStyle(Color.dilInk)
+                            .foregroundStyle(Color.dilHero)
                     }
 
                 VStack(alignment: .leading, spacing: 5) {
                     Text(user.name)
-                        .font(.system(size: 28, weight: .black, design: .rounded))
+                        .font(.title.bold())
                         .foregroundStyle(.white)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
+                        .fixedSize(horizontal: false, vertical: true)
                     Text(profileDetail.isEmpty ? "Local profile" : profileDetail)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.white.opacity(0.68))
@@ -112,7 +123,7 @@ private struct HealthConnectionCard: View {
     var body: some View {
         Card {
             VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 12) {
                     AdaptiveIconTile(color: .dilPurple, icon: "heart.text.square.fill", size: 54)
                     VStack(alignment: .leading, spacing: 5) {
                         Text("Apple Health")
@@ -135,16 +146,15 @@ private struct HealthConnectionCard: View {
                     HStack {
                         Image(systemName: isRequesting ? "hourglass" : "heart.fill")
                             .font(.headline.weight(.black))
-                        Text(isRequesting ? "Requesting access…" : "Request Apple Health access")
+                        Text(isRequesting ? "Loading…" : state == .notRequested ? "Connect Apple Health" : "Refresh Health records")
                             .font(.headline.weight(.black))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.72)
+                            .fixedSize(horizontal: false, vertical: true)
                         Spacer()
                     }
                     .foregroundStyle(.white)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 14)
-                    .background(Color.dilInk, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .background(Color.dilHero, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
                 .buttonStyle(.plain)
                 .disabled(isRequesting)
@@ -190,10 +200,10 @@ private struct GarminSetupCard: View {
     var body: some View {
         Card(background: Color.dilGreen.opacity(0.12)) {
             VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 12) {
                     AdaptiveIconTile(color: .dilGreen, icon: "figure.run", size: 54)
                     VStack(alignment: .leading, spacing: 5) {
-                        Text("Garmin Forerunner 165")
+                        Text("Garmin via Apple Health")
                             .font(.title3.weight(.black))
                             .foregroundStyle(Color.dilInk)
                         Text("Sync through Garmin Connect into Apple Health.")
@@ -254,13 +264,14 @@ private struct PrivacyCard: View {
                             .foregroundStyle(Color.dilMuted)
                     }
                     .accessibilityLabel("Privacy policy")
+                    .frame(minWidth: 44, minHeight: 44)
                 }
 
                 PrivacyRow(icon: "lock.shield.fill", text: "No account or cloud sharing is enabled.")
                 PrivacyRow(icon: "person.2.slash.fill", text: "Online friend rankings are not available yet.")
                 PrivacyRow(icon: "trophy.fill", text: "Only your weekly point total is shown here: \(weeklyPoints).")
 
-                HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 12) {
                     if let activityExport {
                         ShareLink(item: activityExport) {
                             Label("Export activity", systemImage: "square.and.arrow.up")

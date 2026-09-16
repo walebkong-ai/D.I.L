@@ -2,7 +2,6 @@ import SwiftUI
 
 struct GoalsView: View {
     @EnvironmentObject private var appState: AppState
-    @State private var editingTask: DailyTask?
     @State private var isAddingTask = false
 
     var body: some View {
@@ -15,32 +14,27 @@ struct GoalsView: View {
                     }
                     HeaderView(eyebrow: "Daily plan", title: "Goals", systemImage: "target")
 
-                    HStack(spacing: 10) {
-                        MetricBlock(title: "Goals", value: "\(appState.dailyPlan.tasks.count)", detail: "today", color: .dilBlue)
-                        MetricBlock(title: "Complete", value: "\(appState.dailyPlan.tasks.filter(\.isComplete).count)", detail: "done", color: .dilGreen)
-                        MetricBlock(title: "Points", value: "\(appState.dailyPointTotal)", detail: "earned", color: .dilOrange)
-                    }
+                    MetricSummaryCard(title: "Today's plan", status: "\(appState.dailyPlan.tasks.filter(\.isComplete).count) of \(appState.dailyPlan.tasks.count) complete",
+                                      value: "\(appState.dailyPlan.tasks.filter { !$0.isComplete }.count) remaining")
 
                     if appState.dailyPlan.tasks.isEmpty {
                         EmptyStatePanel(
                             icon: "plus.circle.fill",
                             title: "No goals yet",
-                            detail: "Add the goals you want to finish today. Completed goals are saved on this device and immediately update your points.",
+                            detail: "Create your first daily goal.",
                             color: .dilGreen
                         )
                     } else {
-                        SectionHeader(title: "Plan Stack", detail: "\(appState.dailyPlan.tasks.count) items")
-                        ForEach(appState.dailyPlan.tasks) { task in
-                            GoalCard(task: task, categoryColor: categoryColor(for: task.categoryName)) {
-                                appState.completeTask(task)
-                            } onEdit: {
-                                editingTask = task
-                            } onDelete: {
-                                if let index = appState.dailyPlan.tasks.firstIndex(where: { $0.id == task.id }) {
-                                    appState.deleteTasks(at: IndexSet(integer: index))
-                                }
+                        SectionHeader(title: "Next up")
+                        ForEach(appState.dailyPlan.tasks.filter { !$0.isComplete }.sorted { $0.points > $1.points }) { task in
+                            GoalSummaryRow(task: task)
+                        }
+                        if appState.dailyPlan.tasks.contains(where: \.isComplete) {
+                            DisclosureGroup("Completed goals") {
+                                ForEach(appState.dailyPlan.tasks.filter(\.isComplete)) { task in GoalSummaryRow(task: task) }
                             }
                         }
+                        NavigationLink("View daily history") { GoalHistoryView() }
                     }
 
                     Button {
@@ -59,7 +53,7 @@ struct GoalsView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 15)
-                        .background(Color.dilInk, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        .background(Color.dilHero, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                     }
                     .buttonStyle(.plain)
                 }
@@ -79,86 +73,90 @@ struct GoalsView: View {
                 )
             }
         }
-        .sheet(item: $editingTask) { task in
-            GoalEditorView(
-                title: "Edit Goal",
-                categories: appState.dailyPlan.categories.map(\.name),
-                task: task
-            ) { title, detail, points, category in
-                appState.updateTask(
-                    task,
-                    title: title,
-                    detail: detail,
-                    points: points,
-                    categoryName: category
-                )
-            }
-        }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.dilBackground.ignoresSafeArea())
     }
 
-    private func categoryColor(for name: String) -> Color {
-        appState.dailyPlan.categories.first(where: { $0.name == name })?.color ?? .dilInk
+}
+
+struct GoalSummaryRow: View {
+    @EnvironmentObject private var appState: AppState
+    var task: DailyTask
+    var body: some View {
+        HStack(spacing: 8) {
+            Button { appState.completeTask(task) } label: {
+                Image(systemName: task.isComplete ? "checkmark.circle.fill" : "circle")
+                    .font(.title2).frame(width: 44, height: 44)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("\(task.isComplete ? "Mark incomplete" : "Complete") \(task.title)")
+            NavigationLink { GoalDetailView(taskID: task.id) } label: {
+                DetailDisclosure(title: task.title, value: task.isComplete ? "Complete" : "\(task.points) pts · Incomplete")
+            }.buttonStyle(.plain)
+        }
+        .foregroundStyle(task.isComplete ? Color.dilMuted : Color.dilInk)
     }
 }
 
-private struct GoalCard: View {
-    var task: DailyTask
-    var categoryColor: Color
-    var onToggle: () -> Void
-    var onEdit: () -> Void
-    var onDelete: () -> Void
-
+private struct GoalDetailView: View {
+    @EnvironmentObject private var appState: AppState
+    let taskID: UUID
+    @Environment(\.dismiss) private var dismiss
+    @State private var editing = false
+    @State private var deleting = false
+    private var task: DailyTask? { appState.dailyPlan.tasks.first { $0.id == taskID } }
     var body: some View {
-        Card {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .top, spacing: 12) {
-                    Button(action: onToggle) {
-                        Image(systemName: task.isComplete ? "checkmark.circle.fill" : "circle")
-                            .font(.title2.weight(.bold))
-                            .foregroundStyle(task.isComplete ? Color.dilGreen : categoryColor)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(task.isComplete ? "Mark incomplete" : "Mark complete")
-                    .frame(minWidth: 44, minHeight: 44)
-
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text(task.title)
-                            .font(.title3.weight(.bold))
-                            .strikethrough(task.isComplete)
-                        if !task.detail.isEmpty {
-                            Text(task.detail)
-                                .font(.subheadline)
-                                .foregroundStyle(Color.dilMuted)
-                        }
-                    }
-
-                    Spacer(minLength: 8)
-
-                    Menu {
-                        Button("Edit", systemImage: "pencil", action: onEdit)
-                        Button("Delete", systemImage: "trash", role: .destructive, action: onDelete)
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .font(.title3)
-                            .foregroundStyle(Color.dilMuted)
-                    }
-                    .accessibilityLabel("Goal actions")
-                    .frame(minWidth: 44, minHeight: 44)
+        List {
+            if let task {
+                Section {
+                    MetricRow(title: task.categoryName, value: task.title, detail: task.isComplete ? "Complete" : "Next step: complete this daily goal")
+                    if !task.detail.isEmpty { Text(task.detail) }
+                    MetricRow(title: "Points", value: "\(task.points) pts")
+                    Button(task.isComplete ? "Mark incomplete" : "Mark complete") { appState.completeTask(task) }
                 }
-
-                HStack {
-                    StatusBadge(text: task.categoryName, color: categoryColor, icon: "tag.fill")
-                    Spacer()
-                    Text("\(task.points) pts")
-                        .font(.caption.weight(.black))
-                        .foregroundStyle(Color.dilInk)
+                Section("Manage goal") {
+                    Button("Edit goal", systemImage: "pencil") { editing = true }
+                    Button("Delete goal", systemImage: "trash", role: .destructive) { deleting = true }
                 }
+            } else { Text("This goal is no longer in today's plan.") }
+        }
+        .navigationTitle("Goal").navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $editing) {
+            if let task {
+                GoalEditorView(title: "Edit Goal", categories: appState.dailyPlan.categories.map(\.name), task: task) { title, detail, points, category in
+                    appState.updateTask(task, title: title, detail: detail, points: points, categoryName: category)
+                }
+            }
+        }
+        .confirmationDialog("Delete this goal?", isPresented: $deleting, titleVisibility: .visible) {
+            Button("Delete goal", role: .destructive) {
+                if let index = appState.dailyPlan.tasks.firstIndex(where: { $0.id == taskID }) {
+                    appState.deleteTasks(at: IndexSet(integer: index))
+                }
+                dismiss()
             }
         }
     }
 }
+
+struct GoalHistoryView: View {
+    @EnvironmentObject private var appState: AppState
+    var body: some View {
+        List {
+            ForEach(appState.history.sorted { $0.date > $1.date }, id: \.date) { day in
+                NavigationLink {
+                    List(day.tasks) { task in
+                        MetricRow(title: task.title, value: task.isComplete ? "Complete" : "Incomplete", detail: "\(task.points) pts · \(task.categoryName)")
+                        if !task.detail.isEmpty { Text(task.detail) }
+                    }.navigationTitle(day.date.formatted(date: .abbreviated, time: .omitted))
+                } label: {
+                    MetricRow(title: day.date.formatted(date: .abbreviated, time: .omitted), value: "\(day.tasks.filter(\.isComplete).count) of \(day.tasks.count) complete")
+                }
+            }
+        }.navigationTitle("Daily history").navigationBarTitleDisplayMode(.inline)
+    }
+}
+
 
 private struct GoalEditorView: View {
     @Environment(\.dismiss) private var dismiss

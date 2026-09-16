@@ -26,7 +26,7 @@ private struct AppShellView: View {
                     .tabItem { Label("Today", systemImage: "house.fill") }
                     .tag(AppTab.today)
 
-                LocalLogsView()
+                TrackView()
                     .tabItem { Label("Track", systemImage: "plus.circle.fill") }
                     .tag(AppTab.track)
 
@@ -44,7 +44,7 @@ private struct AppShellView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.dilBackground.ignoresSafeArea())
-            .toolbarBackground(.white, for: .tabBar)
+            .toolbarBackground(Color.dilSurface, for: .tabBar)
             .toolbarBackground(.visible, for: .tabBar)
             .tint(.dilInk)
         }

@@ -14,6 +14,8 @@ struct LocalLogsView: View {
     @State private var error: String?
     @State private var confirmDelete = false
     @State private var loadFailed = false
+    @State private var composing = false
+    @State private var showingHistory = false
     private let categories = ["Workout", "Study", "Habits", "Mood", "Nutrition", "Budget"]
     private var url: URL { URL.applicationSupportDirectory.appendingPathComponent("logs.json") }
 
@@ -23,37 +25,75 @@ struct LocalLogsView: View {
                 AdaptiveScreen { _ in
                     HeaderView(eyebrow: "Quick logs", title: "Track", systemImage: "plus")
 
-                    LogComposer(
-                        categories: categories,
-                        selectedCategory: $category,
-                        note: $note,
-                        isDisabled: loadFailed,
-                        onSave: saveCurrentLog,
-                        colorForCategory: categoryColor
-                    )
+                    SectionHeader(title: "Log something")
+                    ForEach(categories, id: \.self) { item in
+                        Button {
+                            category = item
+                            composing = true
+                        } label: {
+                            Label(item, systemImage: categoryIcon(item))
+                                .font(.headline).foregroundStyle(Color.dilInk)
+                                .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
+                                .contentShape(Rectangle())
+                        }.buttonStyle(.plain).disabled(loadFailed)
+                    }
 
                     if logs.isEmpty {
                         EmptyStatePanel(
                             icon: "tray.fill",
                             title: "No logs yet",
-                            detail: "Capture a workout, study block, meal, mood note, or budget detail. Logs stay local on this device.",
+                            detail: "Choose a category to record your first entry.",
                             color: .dilBlue
                         )
                     } else {
-                        SectionHeader(title: "History", detail: "\(logs.count) entries")
-                        ForEach(logs) { log in
-                            LogHistoryCard(log: log, color: categoryColor(log.category))
+                        SectionHeader(title: "Recent entries")
+                        ForEach(logs.prefix(3)) { log in
+                            NavigationLink {
+                                List { MetricRow(title: log.category, value: log.date.formatted()); Text(log.text) }
+                                    .navigationTitle("Log entry").navigationBarTitleDisplayMode(.inline)
+                            } label: {
+                                DetailDisclosure(title: log.category, value: log.date.formatted(date: .abbreviated, time: .shortened))
+                            }.buttonStyle(.plain)
                         }
                     }
-
-                    DataControlsCard(
-                        export: exportText,
-                        hasLogs: !logs.isEmpty,
-                        onDelete: { confirmDelete = true }
-                    )
+                    Button("View history and data controls") { showingHistory = true }
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $composing) {
+                NavigationStack {
+                    ScreenBackground {
+                        AdaptiveScreen { _ in
+                            LogComposer(note: $note, isDisabled: loadFailed, onSave: saveCurrentLog)
+                        }
+                    }
+                    .navigationTitle(category).navigationBarTitleDisplayMode(.inline)
+                    .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { composing = false } } }
+                    .alert("Could not save log", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
+                        Button("OK") { error = nil }
+                    } message: { Text(error ?? "") }
+                }
+            }
+            .sheet(isPresented: $showingHistory) {
+                NavigationStack {
+                    List {
+                        if logs.isEmpty { Text("No logs yet") }
+                        ForEach(logs) { log in
+                            NavigationLink {
+                                List { MetricRow(title: log.category, value: log.date.formatted()); Text(log.text) }.navigationTitle("Log entry")
+                            } label: { MetricRow(title: log.category, value: log.date.formatted(date: .abbreviated, time: .shortened)) }
+                        }
+                        Section("Data controls") {
+                            if let exportText { ShareLink("Export logs", item: exportText) }
+                            Button("Delete all logs", role: .destructive) {
+                                showingHistory = false
+                                confirmDelete = true
+                            }.disabled(logs.isEmpty && !loadFailed)
+                        }
+                    }.navigationTitle("Log history")
+                        .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { showingHistory = false } } }
+                }
+            }
             .task {
                 do {
                     if FileManager.default.fileExists(atPath: url.path) {
@@ -90,7 +130,18 @@ struct LocalLogsView: View {
         let value = note.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !value.isEmpty else { return }
         let updated = [WellnessLog(id: UUID(), date: .now, category: category, text: String(value.prefix(2000)))] + logs
-        if save(updated) { note = "" }
+        if save(updated) { note = ""; composing = false }
+    }
+
+    private func categoryIcon(_ category: String) -> String {
+        switch category {
+        case "Workout": "dumbbell"
+        case "Study": "book"
+        case "Habits": "checkmark.circle"
+        case "Mood": "face.smiling"
+        case "Nutrition": "fork.knife"
+        default: "creditcard"
+        }
     }
 
     private func categoryColor(_ category: String) -> Color {
@@ -123,12 +174,9 @@ struct LocalLogsView: View {
 }
 
 private struct LogComposer: View {
-    var categories: [String]
-    @Binding var selectedCategory: String
     @Binding var note: String
     var isDisabled: Bool
     var onSave: () -> Void
-    var colorForCategory: (String) -> Color
 
     private var canSave: Bool {
         !isDisabled && !note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -137,32 +185,12 @@ private struct LogComposer: View {
     var body: some View {
         Card {
             VStack(alignment: .leading, spacing: 14) {
-                SectionHeader(title: "New Log", detail: selectedCategory)
+                SectionHeader(title: "New entry")
 
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 96), spacing: 8)], spacing: 8) {
-                    ForEach(categories, id: \.self) { category in
-                        Button {
-                            selectedCategory = category
-                        } label: {
-                            Text(category)
-                                .font(.caption.weight(.black))
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.7)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 9)
-                                .frame(maxWidth: .infinity)
-                                .foregroundStyle(selectedCategory == category ? .white : colorForCategory(category))
-                                .background(
-                                    selectedCategory == category ? colorForCategory(category) : colorForCategory(category).opacity(0.13),
-                                    in: RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
 
                 ZStack(alignment: .topLeading) {
                     TextEditor(text: $note)
+                        .accessibilityLabel("Log note")
                         .frame(minHeight: 116)
                         .scrollContentBackground(.hidden)
                         .padding(10)
@@ -183,12 +211,13 @@ private struct LogComposer: View {
                 }
 
                 Button(action: onSave) {
-                    HStack {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
                         Image(systemName: "checkmark")
                             .font(.headline.weight(.black))
                         Text("Save log")
                             .font(.headline.weight(.black))
-                        Spacer()
+                        }
                         Text("\(min(note.count, 2000))/2000")
                             .font(.caption.weight(.bold))
                             .opacity(0.72)
@@ -196,67 +225,10 @@ private struct LogComposer: View {
                     .foregroundStyle(.white)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 14)
-                    .background(canSave ? Color.dilInk : Color.dilMuted, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .background(canSave ? Color.dilHero : Color.dilMuted, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
                 .buttonStyle(.plain)
                 .disabled(!canSave)
-            }
-        }
-    }
-}
-
-private struct LogHistoryCard: View {
-    var log: WellnessLog
-    var color: Color
-
-    var body: some View {
-        Card {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(alignment: .firstTextBaseline) {
-                    StatusBadge(text: log.category, color: color)
-                    Spacer()
-                    Text(log.date.formatted(.dateTime.month(.abbreviated).day().hour().minute()))
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(Color.dilMuted)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.72)
-                }
-
-                Text(log.text)
-                    .font(.body)
-                    .foregroundStyle(Color.dilInk)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-    }
-}
-
-private struct DataControlsCard: View {
-    var export: String?
-    var hasLogs: Bool
-    var onDelete: () -> Void
-
-    var body: some View {
-        Card(background: Color.dilInk.opacity(0.05)) {
-            HStack(spacing: 12) {
-                if let export {
-                    ShareLink(item: export) {
-                        Label("Export", systemImage: "square.and.arrow.up")
-                            .font(.headline.weight(.bold))
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(Color.dilInk)
-                }
-
-                Spacer()
-
-                Button(role: .destructive, action: onDelete) {
-                    Label("Delete logs", systemImage: "trash")
-                        .font(.headline.weight(.bold))
-                }
-                .buttonStyle(.plain)
-                .disabled(!hasLogs)
-                .opacity(hasLogs ? 1 : 0.45)
             }
         }
     }

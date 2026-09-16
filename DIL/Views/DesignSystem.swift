@@ -191,8 +191,7 @@ struct SectionHeader: View {
                 Text(detail)
                     .font(.caption.weight(.bold))
                     .foregroundStyle(Color.dilMuted)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(.top, 4)
@@ -212,8 +211,7 @@ struct StatusBadge: View {
             }
             Text(text)
                 .font(.caption.weight(.black))
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .foregroundStyle(color)
         .padding(.horizontal, 10)
@@ -274,5 +272,57 @@ struct EmptyStatePanel: View {
                 }
             }
         }
+    }
+}
+
+struct MetricSummaryCard: View {
+    var title: String
+    var status: String
+    var value: String? = nil
+    var body: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(title).font(.headline).accessibilityAddTraits(.isHeader)
+                Text(status).font(.title2.bold()).fixedSize(horizontal: false, vertical: true)
+                if let value { Text(value).font(.title3).foregroundStyle(Color.dilMuted) }
+            }
+        }
+    }
+}
+
+struct MetricRow: View {
+    var title: String
+    var value: String
+    var detail: String? = nil
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title).font(.subheadline).foregroundStyle(Color.dilMuted)
+            Text(value).font(.headline)
+            if let detail { Text(detail).font(.subheadline).foregroundStyle(Color.dilMuted) }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 8)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+struct DetailDisclosure: View {
+    var title: String
+    var value: String
+    var detail: String? = nil
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 5) {
+                Text(title).font(.headline).foregroundStyle(Color.dilInk)
+                Text(value).font(.subheadline).foregroundStyle(Color.dilMuted)
+                if let detail { Text(detail).font(.subheadline).foregroundStyle(Color.dilMuted) }
+            }.fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+            Image(systemName: "chevron.right").foregroundStyle(Color.dilMuted).accessibilityHidden(true)
+        }
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
     }
 }

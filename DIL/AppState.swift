@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 final class AppState: ObservableObject {
     @Published var user = UserProfile.sample
